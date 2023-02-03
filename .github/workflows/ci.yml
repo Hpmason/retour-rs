@@ -40,7 +40,7 @@ jobs:
           targets: ${{ matrix.target.triple }}
       # Install linux deps
       - if: matrix.os == 'ubuntu-latest'
-        run: apt-get install gcc-multilib
+        run: apt-get install gcc-multilib build-essential
 
       - name: Cargo Check
         run: cargo check --target ${{ matrix.target.triple }} --all-features

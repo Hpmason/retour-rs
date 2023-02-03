@@ -8,17 +8,31 @@ jobs:
     strategy:
       matrix:
         toolchain: [nightly]
-        target: 
+        environment: 
+          # Linux targets
           - os: ubuntu-latest
-            triple: [i686-unknown-linux-gnu, x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
-          
+            target:
+              - triple: x86_64-unknown-linux-gnu
+              - triple: x86_64-unknown-linux-musl
+              - triple: i686-unknown-linux-gnu
+
+          # Windows Targets
           - os: windows-latest
-            triple: [i686-pc-windows-gnu, i686-pc-windows-msvc, x86_64-pc-windows-gnu, x86_64-pc-windows-msvc]
+            target: 
+              - triple: i686-pc-windows-msvc 
+              - triple: x86_64-pc-windows-msvc
+              - triple: i686-pc-windows-gnu 
+              - triple: x86_64-pc-windows-gnu
+              
           
           - os: macos-latest
-            triple: [x86_64-apple-darwin]
+            target: 
+              - triple: i686-pc-windows-msvc 
+              - triple: x86_64-pc-windows-msvc
+              - triple: i686-pc-windows-gnu 
+              - triple: x86_64-pc-windows-gnu
 
-    runs-on: ${{ matrix.target.os }}
+    runs-on: ${{ matrix.environment.os }}
     steps:
       - uses: actions/checkout@v2
 
@@ -27,7 +41,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
       
       - name: Cargo Check
-        run: cargo check --target ${{ matrix.target.triple }}
+        run: cargo check --target ${{ matrix.environment.target.triple }}
       
       - name: Cargo tests
-        run: cargo test --target ${{ matrix.target.triple }}
+        run: cargo test --target ${{ matrix.environment.target.triple }}

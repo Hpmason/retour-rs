@@ -8,29 +8,29 @@ jobs:
     strategy:
       matrix:
         toolchain: [nightly]
-        environment: 
-          # Linux targets
-          - os: ubuntu-latest
-            target:
-              - triple: x86_64-unknown-linux-gnu
-              - triple: x86_64-unknown-linux-musl
-              - triple: i686-unknown-linux-gnu
-
-          # Windows Targets
+        target:
           - os: windows-latest
-            target: 
-              - triple: i686-pc-windows-msvc 
-              - triple: x86_64-pc-windows-msvc
-              - triple: i686-pc-windows-gnu 
-              - triple: x86_64-pc-windows-gnu
-              
+            triple: i686-pc-windows-msvc
+          - os: windows-latest
+            triple: x86_64-pc-windows-msvc
+          - os: windows-latest
+            triple: i686-pc-windows-gnu
+          - os: windows-latest
+            triple: x86_64-pc-windows-gnu
+          
+          - os: ubuntu-latest
+            triple: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            triple: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            triple: i686-unknown-linux-gnu
           
           - os: macos-latest
-            target: 
-              - triple: i686-apple-darwin
-              - triple: x86_64-apple-darwin
+            triple: i686-apple-darwin
+          - os: macos-latest
+            triple: x86_64-apple-darwin
 
-    runs-on: ${{ matrix.environment.os }}
+    runs-on: ${{ matrix.target.os }}
     steps:
       - uses: actions/checkout@v2
 
@@ -39,7 +39,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
       
       - name: Cargo Check
-        run: cargo check --target ${{ matrix.environment.target.triple }}
+        run: cargo check --target ${{ matrix.target.triple }}
       
       - name: Cargo tests
-        run: cargo test --target ${{ matrix.environment.target.triple }}
+        run: cargo test --target ${{ matrix.target.triple }}

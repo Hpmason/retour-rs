@@ -37,6 +37,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
+          targets: ${{ matrix.target.triple }}
       
       - name: Cargo Check
         run: cargo check --target ${{ matrix.target.triple }}

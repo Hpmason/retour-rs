@@ -27,7 +27,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
       
       - name: Cargo Check
-        run: cargo check --target ${{ matrix.target }}
+        run: cargo check --target ${{ matrix.target.triple }}
       
       - name: Cargo tests
-        run: cargo test --target ${{ matrix.target }}
+        run: cargo test --target ${{ matrix.target.triple }}

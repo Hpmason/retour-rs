@@ -27,10 +27,8 @@ jobs:
           
           - os: macos-latest
             target: 
-              - triple: i686-pc-windows-msvc 
-              - triple: x86_64-pc-windows-msvc
-              - triple: i686-pc-windows-gnu 
-              - triple: x86_64-pc-windows-gnu
+              - triple: i686-apple-darwin
+              - triple: x86_64-apple-darwin
 
     runs-on: ${{ matrix.environment.os }}
     steps:

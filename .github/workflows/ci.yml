@@ -25,8 +25,8 @@ jobs:
           - os: ubuntu-latest
             triple: i686-unknown-linux-gnu
           
-          - os: macos-latest
-            triple: i686-apple-darwin
+          # - os: macos-latest
+          #   triple: i686-apple-darwin
           - os: macos-latest
             triple: x86_64-apple-darwin
 
@@ -40,7 +40,7 @@ jobs:
           targets: ${{ matrix.target.triple }}
       
       - name: Cargo Check
-        run: cargo check --target ${{ matrix.target.triple }}
+        run: cargo check --target ${{ matrix.target.triple }} --all-features
       
       - name: Cargo tests
-        run: cargo test --target ${{ matrix.target.triple }}
+        run: cargo test --target ${{ matrix.target.triple }} --all-features

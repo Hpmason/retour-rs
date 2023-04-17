@@ -28,3 +28,17 @@ impl_hookable! {
   __arg_0:  A, __arg_1:  B, __arg_2:  C, __arg_3:  D, __arg_4:  E, __arg_5:  F, __arg_6:  G,
   __arg_7:  H, __arg_8:  I, __arg_9:  J, __arg_10: K, __arg_11: L, __arg_12: M, __arg_13: N
 }
+
+#[cfg(feature = "nightly")]
+unsafe impl<Ret: 'static, A: 'static> Function for unsafe extern "C" fn(A, ...) -> Ret {
+  type Arguments = (A, std::ffi::VaListImpl<'static>);
+  type Output = Ret;
+
+  unsafe fn from_ptr(ptr: *const ()) -> Self {
+    ::std::mem::transmute(ptr)
+  }
+
+  fn to_ptr(&self) -> *const () {
+    unsafe { ::std::mem::transmute(*self) }
+  }
+}

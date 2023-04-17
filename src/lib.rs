@@ -1,7 +1,7 @@
 #![recursion_limit = "1024"]
 #![cfg_attr(
   feature = "nightly",
-  feature(unboxed_closures, abi_thiscall, tuple_trait)
+  feature(unboxed_closures, abi_thiscall, tuple_trait, c_variadic)
 )]
 #![cfg_attr(
   all(feature = "nightly", test),

@@ -2,19 +2,27 @@
 
 use crate::libc::*;
 use once_cell::sync::Lazy;
-use retour::GenericDetour;
-use winapi::{shared::{ntdef::*, minwindef::*}, um::libloaderapi::{LoadLibraryA, GetProcAddress}};
+use retour::{GenericDetour, Function};
+use winapi::{shared::{ntdef::*, minwindef::*}};
 
-// LoadLibraryA
 type fn_LoadLibraryA = extern "system" fn(LPCSTR) -> HMODULE;
-static hook_LoadLibraryA: Lazy<GenericDetour<fn_LoadLibraryA>> = Lazy::new(|| {
-  let library_handle = unsafe { LoadLibraryA("kernel32.dll\0".as_ptr() as _) };
-  let address = unsafe { GetProcAddress(library_handle, "LoadLibraryA\0".as_ptr() as _) };
-  let ori: fn_LoadLibraryA = unsafe { std::mem::transmute(address) };
+type fn_LoadLibraryW = extern "system" fn(LPCWSTR) -> HMODULE;
+type fn_LoadLibraryExA = extern "system" fn(LPCSTR, HANDLE, DWORD) -> HMODULE;
+type fn_LoadLibraryExW = extern "system" fn(LPCWSTR, HANDLE, DWORD) -> HMODULE;
+
+static hook_LoadLibraryA: Lazy<GenericDetour<fn_LoadLibraryA>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryW\0", our_LoadLibraryA));
+static hook_LoadLibraryW: Lazy<GenericDetour<fn_LoadLibraryW>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryW\0", our_LoadLibraryW));
+static hook_LoadLibraryExA: Lazy<GenericDetour<fn_LoadLibraryExA>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryW\0", our_LoadLibraryExA));
+static hook_LoadLibraryExW: Lazy<GenericDetour<fn_LoadLibraryExW>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryW\0", our_LoadLibraryExW));
+
+fn build_detour<T: Function>(lpFileName: &str, lpProcName: &str, detour_fn: T) -> GenericDetour<T> {
+  let library = minidl::Library::load(lpFileName).unwrap();
+  let ori = unsafe { library.sym(lpProcName).unwrap() };
   return unsafe { 
-    GenericDetour::new(ori, our_LoadLibraryA).unwrap()
+    GenericDetour::new(ori, detour_fn).unwrap()
   };
-});
+}
+
 extern "system" fn our_LoadLibraryA(lpFileName: LPCSTR) -> HMODULE {
   log::info!("our_LoadLibraryA lpFileName = {}", lpcstr_to_rust_string(lpFileName));
   unsafe { hook_LoadLibraryA.disable().unwrap() };
@@ -24,16 +32,6 @@ extern "system" fn our_LoadLibraryA(lpFileName: LPCSTR) -> HMODULE {
   return ret_val;
 }
 
-// LoadLibraryW
-type fn_LoadLibraryW = extern "system" fn(LPCWSTR) -> HMODULE;
-static hook_LoadLibraryW: Lazy<GenericDetour<fn_LoadLibraryW>> = Lazy::new(|| {
-  let library_handle = unsafe { LoadLibraryA("kernel32.dll\0".as_ptr() as _) };
-  let address = unsafe { GetProcAddress(library_handle, "LoadLibraryW\0".as_ptr() as _) };
-  let ori: fn_LoadLibraryW = unsafe { std::mem::transmute(address) };
-  return unsafe { 
-    GenericDetour::new(ori, our_LoadLibraryW).unwrap()
-  };
-});
 extern "system" fn our_LoadLibraryW(lpFileName: LPCWSTR) -> HMODULE {
   log::info!("our_LoadLibraryW lpFileName = {}", lpcwstr_to_rust_string(lpFileName));
   unsafe { hook_LoadLibraryW.disable().unwrap() };
@@ -43,16 +41,6 @@ extern "system" fn our_LoadLibraryW(lpFileName: LPCWSTR) -> HMODULE {
   return ret_val;
 }
 
-// LoadLibraryExA
-type fn_LoadLibraryExA = extern "system" fn(LPCSTR, HANDLE, DWORD) -> HMODULE;
-static hook_LoadLibraryExA: Lazy<GenericDetour<fn_LoadLibraryExA>> = Lazy::new(|| {
-  let library_handle = unsafe { LoadLibraryA("kernel32.dll\0".as_ptr() as _) };
-  let address = unsafe { GetProcAddress(library_handle, "LoadLibraryExA\0".as_ptr() as _) };
-  let ori: fn_LoadLibraryExA = unsafe { std::mem::transmute(address) };
-  return unsafe { 
-    GenericDetour::new(ori, our_LoadLibraryExA).unwrap()
-  };
-});
 extern "system" fn our_LoadLibraryExA(lpLibFileName: LPCSTR, hFile: HANDLE, dwFlags: DWORD) -> HMODULE {
   log::info!(
     "our_LoadLibraryExA lpLibFileName = {} hFile = {:p} dwFlags = {:08x}",
@@ -73,16 +61,6 @@ extern "system" fn our_LoadLibraryExA(lpLibFileName: LPCSTR, hFile: HANDLE, dwFl
   return ret_val;
 }
 
-// LoadLibraryExW
-type fn_LoadLibraryExW = extern "system" fn(LPCWSTR, HANDLE, DWORD) -> HMODULE;
-static hook_LoadLibraryExW: Lazy<GenericDetour<fn_LoadLibraryExW>> = Lazy::new(|| {
-  let library_handle = unsafe { LoadLibraryA("kernel32.dll\0".as_ptr() as _) };
-  let address = unsafe { GetProcAddress(library_handle, "LoadLibraryExW\0".as_ptr() as _) };
-  let ori: fn_LoadLibraryExW = unsafe { std::mem::transmute(address) };
-  return unsafe { 
-    GenericDetour::new(ori, our_LoadLibraryExW).unwrap()
-  };
-});
 extern "system" fn our_LoadLibraryExW(lpLibFileName: LPCWSTR, hFile: HANDLE, dwFlags: DWORD) -> HMODULE {
   log::info!(
     "our_LoadLibraryExW lpLibFileName = {} hFile = {:p} dwFlags = {:08x}",
@@ -122,10 +100,6 @@ fn lpcwstr_to_rust_string(input: LPCWSTR) -> String {
 }
 
 pub fn init() {
-  Lazy::force(&hook_LoadLibraryA);
-  Lazy::force(&hook_LoadLibraryW);
-  Lazy::force(&hook_LoadLibraryExA);
-  Lazy::force(&hook_LoadLibraryExW);
   unsafe { hook_LoadLibraryA.enable().unwrap(); }
   unsafe { hook_LoadLibraryW.enable().unwrap(); }
   unsafe { hook_LoadLibraryExA.enable().unwrap(); }

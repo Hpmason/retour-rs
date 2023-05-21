@@ -10,10 +10,10 @@ type fn_LoadLibraryW = extern "system" fn(LPCWSTR) -> HMODULE;
 type fn_LoadLibraryExA = extern "system" fn(LPCSTR, HANDLE, DWORD) -> HMODULE;
 type fn_LoadLibraryExW = extern "system" fn(LPCWSTR, HANDLE, DWORD) -> HMODULE;
 
-static hook_LoadLibraryA: Lazy<GenericDetour<fn_LoadLibraryA>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryW\0", our_LoadLibraryA));
+static hook_LoadLibraryA: Lazy<GenericDetour<fn_LoadLibraryA>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryA\0", our_LoadLibraryA));
 static hook_LoadLibraryW: Lazy<GenericDetour<fn_LoadLibraryW>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryW\0", our_LoadLibraryW));
-static hook_LoadLibraryExA: Lazy<GenericDetour<fn_LoadLibraryExA>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryW\0", our_LoadLibraryExA));
-static hook_LoadLibraryExW: Lazy<GenericDetour<fn_LoadLibraryExW>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryW\0", our_LoadLibraryExW));
+static hook_LoadLibraryExA: Lazy<GenericDetour<fn_LoadLibraryExA>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryExA\0", our_LoadLibraryExA));
+static hook_LoadLibraryExW: Lazy<GenericDetour<fn_LoadLibraryExW>> = Lazy::new(|| build_detour("kernel32.dll\0", "LoadLibraryExW\0", our_LoadLibraryExW));
 
 fn build_detour<T: Function>(lpFileName: &str, lpProcName: &str, detour_fn: T) -> GenericDetour<T> {
   let library = minidl::Library::load(lpFileName).unwrap();

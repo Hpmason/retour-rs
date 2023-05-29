@@ -24,6 +24,16 @@ fn build_detour<T: Function>(lpFileName: &str, lpProcName: &str, detour_fn: T) -
   };
 }
 
+fn strlen(s: *const i8) -> usize {
+  let mut i = 0;
+  unsafe {
+      while *s.offset(i) != 0 {
+          i += 1;
+      }
+  }
+  i as usize
+}
+
 fn wcslen(s: *const u16) -> usize {
   let mut i = 0;
   unsafe {

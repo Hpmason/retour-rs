@@ -1,3 +1,4 @@
+#![cfg(windows)]
 #![allow(non_upper_case_globals)]
 
 use once_cell::sync::Lazy;

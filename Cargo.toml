@@ -28,7 +28,7 @@ matches = "0.1.10"
 ctor = "0.2.2"
 
 [features]
-default = ["nightly"]
+default = []
 nightly = []
 
 [[example]]

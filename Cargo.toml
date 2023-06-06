@@ -35,10 +35,12 @@ static-detour = ["nightly"]
 
 [[example]]
 name = "messageboxw_detour"
+required-features = ["static-detour"]
 crate-type = ["cdylib"]
 
 [[example]]
 name = "cat_detour"
+required-features = ["static-detour"]
 crate-type = ["cdylib"]
 
 [[example]]

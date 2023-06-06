@@ -1,11 +1,15 @@
 #![recursion_limit = "1024"]
 #![cfg_attr(
-  feature = "nightly",
-  feature(unboxed_closures, abi_thiscall, tuple_trait)
+  feature = "static-detour",
+  feature(unboxed_closures, tuple_trait)
 )]
 #![cfg_attr(
-  all(feature = "nightly", test),
-  feature(naked_functions, core_intrinsics)
+  all(feature = "static-detour", test),
+  feature(naked_functions)
+)]
+#![cfg_attr(
+  feature = "thiscall-abi",
+  feature(abi_thiscall)
 )]
 
 //! A cross-platform detour library written in Rust.

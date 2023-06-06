@@ -30,7 +30,7 @@
 /// }
 /// # fn main() { }
 /// ```
-#[cfg(feature = "nightly")]
+#[cfg(feature = "static-detour")]
 #[macro_export]
 // Inspired by: https://github.com/Jascha-N/minhook-rs
 macro_rules! static_detour {
@@ -184,7 +184,7 @@ macro_rules! impl_hookable {
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "C"        fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "system"   fn($($ty),*) -> Ret));
 
-    #[cfg(feature = "nightly")]
+    #[cfg(feature = "thiscall-abi")]
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "thiscall" fn($($ty),*) -> Ret));
   };
 
@@ -201,7 +201,7 @@ macro_rules! impl_hookable {
   };
 
   (@impl_unsafe ($($nm:ident : $ty:ident),*) ($target:ty) ($detour:ty)) => {
-    #[cfg(feature = "nightly")]
+    #[cfg(feature = "static-detour")]
     impl<Ret: 'static, $($ty: 'static),*> $crate::StaticDetour<$target> {
       #[doc(hidden)]
       pub unsafe fn call(&self, $($nm : $ty),*) -> Ret {
@@ -220,7 +220,7 @@ macro_rules! impl_hookable {
   };
 
   (@impl_safe ($($nm:ident : $ty:ident),*) ($fn_type:ty)) => {
-    #[cfg(feature = "nightly")]
+    #[cfg(feature = "static-detour")]
     impl<Ret: 'static, $($ty: 'static),*> $crate::StaticDetour<$fn_type> {
       #[doc(hidden)]
       pub fn call(&self, $($nm : $ty),*) -> Ret {

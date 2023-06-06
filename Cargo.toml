@@ -30,6 +30,8 @@ ctor = "0.2.2"
 [features]
 default = []
 nightly = []
+thiscall-abi = ["nightly"]
+static-detour = ["nightly"]
 
 [[example]]
 name = "messageboxw_detour"

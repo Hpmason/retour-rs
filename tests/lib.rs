@@ -79,7 +79,7 @@ mod generic {
   }
 }
 
-#[cfg(feature = "nightly")]
+#[cfg(feature = "static-detour")]
 mod statik {
   use super::*;
   use retour::static_detour;

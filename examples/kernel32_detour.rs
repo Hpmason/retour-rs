@@ -1,14 +1,14 @@
 #![cfg(windows)]
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
-use std::{ffi::CStr, os::windows::raw::HANDLE};
+use std::{ffi::CStr, os::raw::c_void};
 
 use once_cell::sync::Lazy;
 use retour::GenericDetour;
 use windows::{
   core::PCSTR,
   Win32::{
-    Foundation::{BOOL, HMODULE},
+    Foundation::{BOOL, HANDLE, HMODULE},
     System::{
       LibraryLoader::{GetProcAddress, LoadLibraryA},
       SystemServices::{
@@ -40,7 +40,7 @@ extern "system" fn our_LoadLibraryA(lpFileName: PCSTR) -> HMODULE {
 }
 
 #[no_mangle]
-unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: u64) -> BOOL {
+unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: *mut c_void) -> BOOL {
   match reason {
     DLL_PROCESS_ATTACH => {
       println!("attaching");

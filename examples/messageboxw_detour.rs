@@ -5,6 +5,7 @@
 use retour::static_detour;
 use std::error::Error;
 use std::ffi::c_int;
+use std::os::raw::c_void;
 use std::{ffi::CString, iter, mem};
 use windows::core::{PCSTR, PCWSTR};
 use windows::w;
@@ -63,7 +64,7 @@ fn get_module_symbol_address(module: &str, symbol: &str) -> Option<usize> {
 }
 
 #[no_mangle]
-unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: u64) -> BOOL {
+unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: *mut c_void) -> BOOL {
   match reason {
     DLL_PROCESS_ATTACH => {
       println!("attaching");

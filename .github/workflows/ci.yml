@@ -10,7 +10,6 @@ jobs:
   test:
     strategy:
       matrix:
-        toolchain: [nightly]
         target:
           - os: windows-latest
             triple: i686-pc-windows-msvc
@@ -42,7 +41,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ matrix.toolchain }}
+          toolchain: nightly
+          targets: ${{ matrix.target.triple }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
           targets: ${{ matrix.target.triple }}
       # Install linux deps
       - if: matrix.target.os == 'ubuntu-latest'
@@ -63,9 +66,14 @@ jobs:
         with:
           platform: x86
       
-
-      - name: Cargo Check
-        run: ${{ matrix.target.rustflags }} cargo check --target ${{ matrix.target.triple }} --all-features
+      - name: Cargo Check - Default Features Only
+        run: ${{ matrix.target.rustflags }} cargo check --target ${{ matrix.target.triple }}
       
-      - name: Cargo tests
-        run: ${{ matrix.target.rustflags }} cargo test --target ${{ matrix.target.triple }} --all-features
+      - name: Cargo Check - All Features
+        run: ${{ matrix.target.rustflags }} cargo +nightly check --target ${{ matrix.target.triple }} --all-features
+
+      - name: Cargo Tests - Stable
+        run: ${{ matrix.target.rustflags }} cargo test --target ${{ matrix.target.triple }}
+      
+      - name: Cargo Tests - Nightly
+        run: ${{ matrix.target.rustflags }} cargo +nightly test --target ${{ matrix.target.triple }} --all-features

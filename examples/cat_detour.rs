@@ -1,9 +1,9 @@
 #![cfg(all(not(windows), feature = "nightly"))]
 
+use retour::static_detour;
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::os::raw::c_int;
-use retour::static_detour;
 
 extern "C" {
   fn open(pathname: *const c_char, flags: c_int) -> c_int;
@@ -22,8 +22,8 @@ fn definitely_open(_: *const c_char, _: c_int) -> c_int {
 
 #[ctor::ctor]
 fn main() {
-    unsafe {
-        Opentour.initialize(open, definitely_open).unwrap();
-        Opentour.enable().unwrap();
-    }
+  unsafe {
+    Opentour.initialize(open, definitely_open).unwrap();
+    Opentour.enable().unwrap();
+  }
 }

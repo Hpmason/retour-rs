@@ -4,19 +4,22 @@
 //! Ensure the crate is compiled as a 'cdylib' library to allow C interop.
 use retour::static_detour;
 use std::error::Error;
+use std::ffi::c_int;
 use std::{ffi::CString, iter, mem};
-use winapi::ctypes::c_int;
-use winapi::shared::minwindef::{BOOL, DWORD, HINSTANCE, LPVOID, TRUE, UINT};
-use winapi::shared::windef::HWND;
-use winapi::um::libloaderapi::{GetModuleHandleW, GetProcAddress};
-use winapi::um::winnt::{DLL_PROCESS_ATTACH, LPCWSTR};
+use windows::core::{PCSTR, PCWSTR};
+use windows::w;
+use windows::Win32::Foundation::{BOOL, HANDLE, HWND};
+use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
+use windows::Win32::System::SystemServices::{
+  DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH,
+};
 
 static_detour! {
-  static MessageBoxWHook: unsafe extern "system" fn(HWND, LPCWSTR, LPCWSTR, UINT) -> c_int;
+  static MessageBoxWHook: unsafe extern "system" fn(HWND, PCWSTR, PCWSTR, u32) -> c_int;
 }
 
 // A type alias for `MessageBoxW` (makes the transmute easy on the eyes)
-type FnMessageBoxW = unsafe extern "system" fn(HWND, LPCWSTR, LPCWSTR, UINT) -> c_int;
+type FnMessageBoxW = unsafe extern "system" fn(HWND, PCWSTR, PCWSTR, u32) -> c_int;
 
 /// Called when the DLL is attached to the process.
 unsafe fn main() -> Result<(), Box<dyn Error>> {
@@ -37,10 +40,10 @@ unsafe fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Called whenever `MessageBoxW` is invoked in the process.
-fn messageboxw_detour(hwnd: HWND, text: LPCWSTR, _caption: LPCWSTR, u_type: UINT) -> c_int {
+fn messageboxw_detour(hwnd: HWND, text: PCWSTR, _caption: PCWSTR, msgbox_style: u32) -> c_int {
   // Call the original `MessageBoxW`, but replace the caption
-  let replaced_caption = "Detoured!\0".encode_utf16().collect::<Vec<u16>>();
-  unsafe { MessageBoxWHook.call(hwnd, text, replaced_caption.as_ptr() as _, u_type) }
+  let replaced_caption = w!("Detoured!");
+  unsafe { MessageBoxWHook.call(hwnd, text, replaced_caption, msgbox_style) }
 }
 
 /// Returns a module symbol's absolute address.
@@ -51,29 +54,27 @@ fn get_module_symbol_address(module: &str, symbol: &str) -> Option<usize> {
     .collect::<Vec<u16>>();
   let symbol = CString::new(symbol).unwrap();
   unsafe {
-    let handle = GetModuleHandleW(module.as_ptr());
-    match GetProcAddress(handle, symbol.as_ptr()) as usize {
-      0 => None,
-      n => Some(n),
+    let handle = GetModuleHandleW(PCWSTR(module.as_ptr() as _)).unwrap();
+    match GetProcAddress(handle, PCSTR(symbol.as_ptr() as _)) {
+      Some(func) => Some(func as usize),
+      None => None,
     }
   }
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
-pub unsafe extern "system" fn DllMain(
-  _module: HINSTANCE,
-  call_reason: DWORD,
-  _reserved: LPVOID,
-) -> BOOL {
-  if call_reason == DLL_PROCESS_ATTACH {
-    // A console may be useful for printing to 'stdout'
-    // winapi::um::consoleapi::AllocConsole();
-
-    // Preferably a thread should be created here instead, since as few
-    // operations as possible should be performed within `DllMain`.
-    main().is_ok() as BOOL
-  } else {
-    TRUE
-  }
+unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: u64) -> BOOL {
+  match reason {
+    DLL_PROCESS_ATTACH => {
+      println!("attaching");
+      unsafe { main().unwrap() }
+    },
+    DLL_PROCESS_DETACH => {
+      println!("detaching");
+    },
+    DLL_THREAD_ATTACH => {},
+    DLL_THREAD_DETACH => {},
+    _ => {},
+  };
+  return BOOL::from(true);
 }

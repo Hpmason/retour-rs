@@ -20,8 +20,7 @@ maintain this feature, not all desired functionality can be supported due to
 lack of cross-platform APIs. Therefore [EIP relocation](#appendix) is not
 supported.
 
-**NOTE**: Nightly is currently required for `static_detour!` and is enabled by
-default.
+**NOTE**: Nightly is currently required for `static_detour!` and is enabled with the `static-detour` feature flag.
 
 ## Platforms
 
@@ -46,7 +45,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-retour = "0.1"
+retour = "0.2"
 ```
 
 ## Example
@@ -98,7 +97,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 - A Windows API hooking example is available [here](./examples/messageboxw_detour.rs); build it by running:
 ```
-$ cargo build --example messageboxw_detour
+$ cargo build --features="static-detour" --example messageboxw_detour
 ```
 
 ## Mentions

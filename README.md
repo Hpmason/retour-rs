@@ -129,6 +129,13 @@ Part of the library's external user interface was inspired by
 [minhook-rs][minhook], created by [Jascha-N][minhook-author], and it contains
 derivative code of his work.
 
+## Injection Methods
+This crate provides the ability to hook functions in other applications, but does not provide the utilities necessary for injecting/attaching to another process. If you're looking for ways to inject your hooking library here are some approaches you can look into:
+
+- dll injection libraries such as [dll-syringe](https://crates.io/crates/dll-syringe)
+- LD_PRELOAD on *nix platforms
+- Various debuggers, including x64dbg and Cheat Engine
+
 ## Appendix
 
 - *EIP relocation*

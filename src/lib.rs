@@ -99,6 +99,8 @@
 //!
 //! Beyond what is shown here, a trampoline is also generated so the original
 //! function can be called regardless whether the function is hooked or not.
+//! 
+//! For various injection methods, see the [README in the GitHub repo](https://github.com/Hpmason/retour-rs)
 
 // Re-exports
 pub use detours::*;

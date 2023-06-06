@@ -1,4 +1,5 @@
 #![recursion_limit = "1024"]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(
   feature = "static-detour",
   feature(unboxed_closures, tuple_trait)

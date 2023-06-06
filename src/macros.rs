@@ -31,6 +31,7 @@
 /// # fn main() { }
 /// ```
 #[cfg(feature = "static-detour")]
+#[cfg_attr(docsrs, doc(cfg(feature = "static-detour")))]
 #[macro_export]
 // Inspired by: https://github.com/Jascha-N/minhook-rs
 macro_rules! static_detour {
@@ -185,6 +186,7 @@ macro_rules! impl_hookable {
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "system"   fn($($ty),*) -> Ret));
 
     #[cfg(feature = "thiscall-abi")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "thiscall-abi")))]
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "thiscall" fn($($ty),*) -> Ret));
   };
 

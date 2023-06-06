@@ -51,3 +51,7 @@ udis = { package = "libudis86-sys", version = "0.2.1" }
 [target."cfg(windows)".dev-dependencies.windows]
 version = "0.48"
 features = ["Win32_Foundation", "Win32_System_LibraryLoader", "Win32_System_SystemServices"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

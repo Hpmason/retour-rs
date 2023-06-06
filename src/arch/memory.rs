@@ -1,14 +1,13 @@
+use once_cell::sync::Lazy;
+
 use crate::{alloc, arch, error::Result, pic};
-use lazy_static::lazy_static;
 use std::sync::Mutex;
 
-lazy_static! {
-  /// Shared allocator for all detours.
-  pub static ref POOL: Mutex<alloc::ThreadAllocator> = {
-    // Use a range of +/- 2 GB for seeking a memory block
-    Mutex::new(alloc::ThreadAllocator::new(arch::meta::DETOUR_RANGE))
-  };
-}
+/// Shared allocator for all detours.
+pub static POOL: Lazy<Mutex<alloc::ThreadAllocator>> = Lazy::new(|| {
+  // Use a range of +/- 2 GB for seeking a memory block
+  Mutex::new(alloc::ThreadAllocator::new(arch::meta::DETOUR_RANGE))
+});
 
 /// Allocates PIC code at the specified address.
 pub fn allocate_pic(

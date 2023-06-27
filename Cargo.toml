@@ -44,6 +44,11 @@ required-features = ["static-detour"]
 crate-type = ["cdylib"]
 
 [[example]]
+name = "com_dxgi_present"
+required-features = ["static-detour"]
+crate-type = ["cdylib"]
+
+[[example]]
 name = "kernel32_detour"
 crate-type = ["cdylib"]
 
@@ -52,7 +57,12 @@ udis = { package = "libudis86-sys", version = "0.2.1" }
 
 [target."cfg(windows)".dev-dependencies.windows]
 version = "0.48"
-features = ["Win32_Foundation", "Win32_System_LibraryLoader", "Win32_System_SystemServices"]
+features = ["Win32_Foundation",
+            "Win32_System_Console", "Win32_System_LibraryLoader", "Win32_System_SystemServices",
+            "Win32_Graphics_Gdi", "Win32_Graphics_Direct3D", "Win32_Graphics_Direct3D11",
+            "Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common",
+            "Win32_UI_WindowsAndMessaging",
+            ]
 
 [package.metadata.docs.rs]
 all-features = true

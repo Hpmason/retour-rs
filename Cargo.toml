@@ -32,6 +32,7 @@ default = []
 nightly = []
 thiscall-abi = ["nightly"]
 static-detour = ["nightly"]
+c-variadic = ["nightly"]
 
 [[example]]
 name = "messageboxw_detour"

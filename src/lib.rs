@@ -12,6 +12,10 @@
   feature = "thiscall-abi",
   feature(abi_thiscall)
 )]
+#![cfg_attr(
+  feature = "c-variadic",
+  feature(c_variadic)
+)]
 
 //! A cross-platform detour library written in Rust.
 //!

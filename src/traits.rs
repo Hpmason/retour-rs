@@ -29,7 +29,8 @@ impl_hookable! {
   __arg_7:  H, __arg_8:  I, __arg_9:  J, __arg_10: K, __arg_11: L, __arg_12: M, __arg_13: N
 }
 
-#[cfg(feature = "nightly")]
+#[cfg(feature = "c-variadic")]
+#[cfg_attr(docsrs, doc(cfg(feature = "c-variadic")))]
 unsafe impl<Ret: 'static, A: 'static> Function for unsafe extern "C" fn(A, ...) -> Ret {
   type Arguments = (A, std::ffi::VaListImpl<'static>);
   type Output = Ret;

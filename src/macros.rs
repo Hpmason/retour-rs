@@ -166,17 +166,34 @@ macro_rules! static_detour {
 }
 
 macro_rules! impl_hookable {
+  // 1 - Recurse by shifting parameters from left `()` to the right
+  // "@recurse (ignored arguments) (arguments to impl)"
+  
+  // Last iteration is when there are no parameters on the left side
+  // e.g. "@recurse () (__arg0: A, __arg1: B)"
   (@recurse () ($($nm:ident : $ty:ident),*)) => {
-    impl_hookable!(@impl_all ($($nm : $ty),*));
+    impl_hookable!(@impl_non_variadics ($($nm : $ty),*));
+    impl_hookable!(@impl_variadic ($($nm : $ty),*));
   };
+  // Handle case with no function params, used to prevent impl variadic with 0 proceding fn params
+  // e.g. "@recurse (__arg0: A, __arg1: B) ()"
+  (@recurse
+    ($hd_nm:ident : $hd_ty:ident $(, $tl_nm:ident : $tl_ty:ident)*) ()) => {
+    impl_hookable!(@impl_non_variadics ());
+    impl_hookable!(@recurse ($($tl_nm : $tl_ty),*) ($hd_nm : $hd_ty));
+  };
+  // params on right `()` are used as the params for `@impl_all`
   (@recurse
       ($hd_nm:ident : $hd_ty:ident $(, $tl_nm:ident : $tl_ty:ident)*)
       ($($nm:ident : $ty:ident),*)) => {
-    impl_hookable!(@impl_all ($($nm : $ty),*));
+    impl_hookable!(@impl_non_variadics ($($nm : $ty),*));
+    impl_hookable!(@impl_variadic ($($nm : $ty),*));
     impl_hookable!(@recurse ($($tl_nm : $tl_ty),*) ($($nm : $ty,)* $hd_nm : $hd_ty));
   };
 
-  (@impl_all ($($nm:ident : $ty:ident),*)) => {
+  // 2a - impl traits for all fn types, excluding c-variadics
+  // e.g. "@impl_non_variadics (__arg0: A, __arg1: B)"
+  (@impl_non_variadics ($($nm:ident : $ty:ident),*)) => {
     impl_hookable!(@impl_pair ($($nm : $ty),*) (                  fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "cdecl"    fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "stdcall"  fn($($ty),*) -> Ret));
@@ -190,20 +207,35 @@ macro_rules! impl_hookable {
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "thiscall" fn($($ty),*) -> Ret));
   };
 
+  // 2b - impl traits for c-variadic fns
+  (@impl_variadic ($($nm:ident : $ty:ident),*)) => {
+    #[cfg(feature = "c-variadic")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "c-variadic")))]
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "C"        fn($($ty,)* ... ) -> Ret));
+  };
+
+  // 3 - impl trait for both safe and unsafe versions of the fn type (`fn_t`)
+  // At this point "$($nm:ident : $ty:ident)" is primarily used for generics and filler param names
+  // e.g. "@impl_pair (__arg0: A, __arg1: B) (fn(A, B))"
   (@impl_pair ($($nm:ident : $ty:ident),*) ($($fn_t:tt)*)) => {
     impl_hookable!(@impl_fun ($($nm : $ty),*) ($($fn_t)*) (unsafe $($fn_t)*));
   };
 
+  // 4 - impl trait for both safe and unsafe versions of the fn type (`fn_t`)
+  // e.g. "@impl_pair (__arg0: A, __arg1: B) (fn(A, B)) (unsafe fn(A, B))"
   (@impl_fun ($($nm:ident : $ty:ident),*) ($safe_type:ty) ($unsafe_type:ty)) => {
     impl_hookable!(@impl_core ($($nm : $ty),*) ($safe_type));
     impl_hookable!(@impl_core ($($nm : $ty),*) ($unsafe_type));
 
-    impl_hookable!(@impl_unsafe ($($nm : $ty),*) ($unsafe_type) ($safe_type));
     impl_hookable!(@impl_safe ($($nm : $ty),*) ($safe_type));
+    impl_hookable!(@impl_unsafe ($($nm : $ty),*) ($unsafe_type));
   };
 
-  (@impl_unsafe ($($nm:ident : $ty:ident),*) ($target:ty) ($detour:ty)) => {
+  // 5 - impl `call` methods for GenericDetour and StaticDetour of a certain function `$fn_type`
+  // e.g. "@impl_call (__arg0: A, __arg1: B) (fn(A, B))"
+  (@impl_unsafe ($($nm:ident : $ty:ident),*) ($target:ty)) => {
     #[cfg(feature = "static-detour")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "static-detour")))]
     impl<Ret: 'static, $($ty: 'static),*> $crate::StaticDetour<$target> {
       #[doc(hidden)]
       pub unsafe fn call(&self, $($nm : $ty),*) -> Ret {
@@ -221,8 +253,11 @@ macro_rules! impl_hookable {
     }
   };
 
+  // 5 - impl `call` methods for GenericDetour and StaticDetour of a certain function `$fn_type`
+  // e.g. "@impl_safe (__arg0: A, __arg1: B) (fn(A, B))"
   (@impl_safe ($($nm:ident : $ty:ident),*) ($fn_type:ty)) => {
     #[cfg(feature = "static-detour")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "static-detour")))]
     impl<Ret: 'static, $($ty: 'static),*> $crate::StaticDetour<$fn_type> {
       #[doc(hidden)]
       pub fn call(&self, $($nm : $ty),*) -> Ret {
@@ -243,7 +278,9 @@ macro_rules! impl_hookable {
       }
     }
   };
-
+  
+  // 6 - impl `Function` trait for a given `$fn_type`
+  // e.g. "@impl_core (__arg0: A, __arg1: B) (fn(A, B))"
   (@impl_core ($($nm:ident : $ty:ident),*) ($fn_type:ty)) => {
     unsafe impl<Ret: 'static, $($ty: 'static),*> Function for $fn_type {
       type Arguments = ($($ty,)*);
@@ -259,6 +296,7 @@ macro_rules! impl_hookable {
     }
   };
 
+  // Start - Take expected input and start recursive macro
   ($($nm:ident : $ty:ident),*) => {
     impl_hookable!(@recurse ($($nm : $ty),*) ());
   };

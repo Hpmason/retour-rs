@@ -1,4 +1,4 @@
-#![cfg(feature = "nightly")]
+#![cfg(feature = "c-variadic")]
 #![feature(c_variadic)]
 use std::ffi::CStr;
 use std::os::raw::c_char;
@@ -15,12 +15,12 @@ extern "C" {
 
 unsafe extern "C" fn definitely_printf(fmt_str: *const c_char, mut args: ...) -> c_int {
     let fmt_string = CStr::from_ptr(fmt_str);
-    eprintln!("{fmt_string:?}");
+    eprintln!("Format string: {fmt_string:?}");
     args.as_va_list();
     0
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     unsafe {
         let dt = 
             GenericDetour::<unsafe extern "C" fn(*const c_char, ...) -> c_int>::new(

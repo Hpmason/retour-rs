@@ -198,7 +198,7 @@ impl<T: Function> Drop for StaticDetour<T> {
 
     let previous = self.detour.swap(ptr::null_mut(), Ordering::Relaxed);
     if !previous.is_null() {
-      unsafe { Box::from_raw(previous) };
+      unsafe { let _ = Box::from_raw(previous); };
     }
   }
 }

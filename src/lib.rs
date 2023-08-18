@@ -8,10 +8,6 @@
   all(feature = "static-detour", test),
   feature(naked_functions)
 )]
-#![cfg_attr(
-  feature = "thiscall-abi",
-  feature(abi_thiscall)
-)]
 
 //! A cross-platform detour library written in Rust.
 //!

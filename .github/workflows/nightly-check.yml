@@ -1,0 +1,32 @@
+on:
+  schedule:
+    # Run once a week
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+jobs:
+  nightly-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly
+        targets: ${{ matrix.target.triple }}
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+        targets: ${{ matrix.target.triple }}
+    # Install linux deps
+    - if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get update && sudo apt-get install gcc-multilib
+    
+    - name: Cargo Check - All Features
+      run: ${{ matrix.target.rustflags }} cargo +nightly check --target ${{ matrix.target.triple }} --all-features
+    
+    - name: Cargo Tests - Nightly
+      run: ${{ matrix.target.rustflags }} cargo +nightly test --target ${{ matrix.target.triple }} --all-features

@@ -168,7 +168,7 @@ impl<T: Function> StaticDetour<T> {
   }
 
   /// Returns a reference to the generated trampoline.
-  pub(crate) fn trampoline(&self) -> Result<&()> {
+  pub fn trampoline(&self) -> Result<&()> {
     Ok(
       unsafe { self.detour.load(Ordering::SeqCst).as_ref() }
         .ok_or(Error::NotInitialized)?

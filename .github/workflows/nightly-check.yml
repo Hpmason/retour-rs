@@ -1,0 +1,27 @@
+on:
+  schedule:
+    # Run once a week
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+jobs:
+  nightly-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly
+    # Install linux deps
+    - if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get update && sudo apt-get install gcc-multilib
+    
+    - name: Cargo Check - All Features
+      run: cargo +nightly check --all-features
+    
+    - name: Cargo Tests - Nightly
+      run: cargo +nightly test --all-features

@@ -63,6 +63,17 @@ Add this to your `Cargo.toml`:
 retour = { version = "0.3", features = ["static-detour"] }
 ```
 
+## Supported Versions
+This crate, with default features, will support the MSRV in `Cargo.toml` 
+(currently 1.60.0). Certain features may require newer versions of the compiler, 
+which will be documented here and in the docs. Any features that require the 
+nightly compiler will always target the newest version.
+
+Feature versions:
+- `static-detour`: nightly
+- `thiscall-abi`: nightly (will be [stabilized in 1.73.0](https://releases.rs/docs/1.73.0/))
+ 
+
 ## Example
 
 - A static detour (one of *three* different detours):

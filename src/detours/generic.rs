@@ -81,7 +81,7 @@ impl<T: Function> GenericDetour<T> {
   }
 
   /// Returns a reference to the generated trampoline.
-  pub(crate) fn trampoline(&self) -> &() {
+  pub fn trampoline(&self) -> &() {
     self.detour.trampoline()
   }
 }

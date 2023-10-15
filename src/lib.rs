@@ -43,6 +43,12 @@
 //!   others types abstract upon. It has no type-safety and interacts with raw
 //!   pointers. It should be avoided unless any types are references, or not
 //!   known until runtime.
+//! 
+//! ## Supported Versions
+//! This crate, with default features, will support the MSRV in `Cargo.toml` 
+//! (currently 1.60.0). Certain features may require newer versions of the 
+//! compiler, which will be documented here and in the docs. Any features 
+//! that require the nightly compiler will always target the newest version.
 //!
 //! ## Features
 //!

@@ -71,8 +71,7 @@ nightly compiler will always target the newest version.
 
 Feature versions:
 - `static-detour`: nightly
-- `thiscall-abi`: nightly (will be [stabilized in 1.73.0](https://releases.rs/docs/1.73.0/))
- 
+- `thiscall-abi`: 1.73.0 or newer
 
 ## Example
 

@@ -55,8 +55,7 @@
 //! - **static-detour**: Required for static detours, due to usage
 //!   of *unboxed_closures* and *tuple_trait*. The feature also enables a more
 //!   extensive test suite. *Requires nightly compiler*
-//! - **thiscall-abi**: Required for hooking functions that use the "thiscall" ABI, which is 
-//!   nightly only. *Requires nightly compiler*
+//! - **thiscall-abi**: Required for hooking functions that use the "thiscall" ABI. *Requires 1.73.0 or greater*
 //!
 //! ## Platforms
 //!

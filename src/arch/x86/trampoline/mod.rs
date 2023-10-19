@@ -2,7 +2,9 @@ use self::disasm::*;
 use crate::arch::x86::thunk;
 use crate::error::{Error, Result};
 use crate::pic;
+use iced_x86::{Decoder, DecoderOptions, Instruction};
 use std::mem;
+use std::ptr::slice_from_raw_parts;
 
 mod disasm;
 
@@ -31,8 +33,6 @@ impl Trampoline {
 
 /// A trampoline builder.
 struct Builder {
-  /// Disassembler for x86/x64.
-  disassembler: Disassembler,
   /// Target destination for a potential internal branch.
   branch_address: Option<usize>,
   /// Total amount of bytes disassembled.
@@ -49,7 +49,6 @@ impl Builder {
   /// Returns a trampoline builder.
   pub fn new(target: *const (), margin: usize) -> Self {
     Builder {
-      disassembler: Disassembler::new(target),
       branch_address: None,
       total_bytes_disassembled: 0,
       finished: false,
@@ -64,9 +63,28 @@ impl Builder {
   pub unsafe fn build(mut self) -> Result<Trampoline> {
     let mut emitter = pic::CodeEmitter::new();
 
-    while !self.finished {
-      let instruction = self.next_instruction()?;
-      let thunk = self.process_instruction(&instruction)?;
+    // 15 = max size of x64 instruction
+    // safety: we don't know the end address of a function so this could be too far
+    // if the function is right at the end of the code section iced_x86 decoder
+    // doesn't have a way to read one byte at a time without creating a slice in
+    // advance and it's invalid to make a slice that's too long we could make a
+    // new Decoder before reading every individual instruction? but it'd still need
+    // to be given a 15 byte slice to handle any valid x64 instruction
+    let slice = unsafe { &*slice_from_raw_parts(self.target as *const u8, self.margin + 15) };
+    let mut decoder = Decoder::new(
+      (mem::size_of::<usize>() * 8) as u32,
+      slice,
+      DecoderOptions::NONE,
+    );
+    decoder.set_ip(self.target as u64);
+    for instruction in decoder {
+      if instruction.is_invalid() {
+        break;
+      }
+      self.total_bytes_disassembled += instruction.len();
+      let instr_offset = instruction.ip() as usize - (self.target as usize);
+      let instruction_bytes = &slice[instr_offset..instr_offset + instruction.len()];
+      let thunk = self.process_instruction(&instruction, instruction_bytes)?;
 
       // If the trampoline displacement is larger than the target
       // function, all instructions will be displaced, and if there is
@@ -80,8 +98,12 @@ impl Builder {
       // Determine whether enough bytes for the margin has been disassembled
       if self.total_bytes_disassembled >= self.margin && !self.finished {
         // Add a jump to the first instruction after the prolog
-        emitter.add_thunk(thunk::jmp(instruction.next_instruction_address()));
+        emitter.add_thunk(thunk::jmp(instruction.len() + instruction.ip() as usize));
         self.finished = true;
+      }
+
+      if self.finished {
+        break;
       }
     }
 
@@ -91,30 +113,16 @@ impl Builder {
     })
   }
 
-  /// Disassembles the next instruction and returns its properties.
-  unsafe fn next_instruction(&mut self) -> Result<Instruction> {
-    let instruction_address = self.target as usize + self.total_bytes_disassembled;
-
-    // Disassemble the next instruction
-    match Instruction::new(&mut self.disassembler, instruction_address as *const _) {
-      None => Err(Error::InvalidCode)?,
-      Some(instruction) => {
-        // Keep track of the total amount of bytes
-        self.total_bytes_disassembled += instruction.len();
-        Ok(instruction)
-      },
-    }
-  }
-
   /// Returns an instruction after analysing and potentially modifies it.
   unsafe fn process_instruction(
     &mut self,
     instruction: &Instruction,
+    instruction_bytes: &[u8],
   ) -> Result<Box<dyn pic::Thunkable>> {
-    if let Some(displacement) = instruction.rip_operand_displacement() {
-      return self.handle_rip_relative_instruction(instruction, displacement);
-    } else if let Some(displacement) = instruction.relative_branch_displacement() {
-      return self.handle_relative_branch(instruction, displacement);
+    if let Some(target) = instruction.rip_operand_target() {
+      return self.handle_rip_relative_instruction(instruction, instruction_bytes, target as usize);
+    } else if let Some(target) = instruction.relative_branch_target() {
+      return self.handle_relative_branch(instruction, instruction_bytes, target as usize);
     } else if instruction.is_return() {
       // In case the operand is not placed in a branch, the function
       // returns unconditionally (i.e it terminates here).
@@ -123,7 +131,7 @@ impl Builder {
 
     // The instruction does not use any position-dependant operands,
     // therefore the bytes can be copied directly from source.
-    Ok(Box::new(instruction.as_slice().to_vec()))
+    Ok(Box::new(instruction_bytes.to_vec()))
   }
 
   /// Adjusts the offsets for RIP relative operands. They are only available
@@ -137,19 +145,21 @@ impl Builder {
   unsafe fn handle_rip_relative_instruction(
     &mut self,
     instruction: &Instruction,
-    displacement: isize,
+    instruction_bytes: &[u8],
+    target: usize,
   ) -> Result<Box<dyn pic::Thunkable>> {
+    let displacement = (target - instruction.ip() as usize) as isize;
     // If the instruction is an unconditional jump, processing stops here
     self.finished = instruction.is_unconditional_jump();
 
     // Nothing should be done if `displacement` is within the prolog.
     if (-(self.total_bytes_disassembled as isize)..0).contains(&displacement) {
-      return Ok(Box::new(instruction.as_slice().to_vec()));
+      return Ok(Box::new(instruction_bytes.to_vec()));
     }
 
     // These need to be captured by the closure
-    let instruction_address = instruction.address() as isize;
-    let instruction_bytes = instruction.as_slice().to_vec();
+    let instruction_address = instruction.ip() as isize;
+    let instruction_bytes = instruction_bytes.to_vec();
 
     Ok(Box::new(pic::UnsafeThunk::new(
       move |offset| {
@@ -179,13 +189,9 @@ impl Builder {
   unsafe fn handle_relative_branch(
     &mut self,
     instruction: &Instruction,
-    displacement: isize,
+    instruction_bytes: &[u8],
+    destination_address_abs: usize,
   ) -> Result<Box<dyn pic::Thunkable>> {
-    // Calculate the absolute address of the target destination
-    let destination_address_abs = instruction
-      .next_instruction_address()
-      .wrapping_add(displacement as usize);
-
     if instruction.is_call() {
       // Calls are not an issue since they return to the original address
       return Ok(thunk::call(destination_address_abs));
@@ -199,7 +205,7 @@ impl Builder {
     if prolog_range.contains(&destination_address_abs) {
       // Keep track of the jump's destination address
       self.branch_address = Some(destination_address_abs);
-      Ok(Box::new(instruction.as_slice().to_vec()))
+      Ok(Box::new(instruction_bytes.to_vec()))
     } else if instruction.is_loop() {
       // Loops (e.g 'loopnz', 'jecxz') to the outside are not supported
       Err(Error::UnsupportedInstruction)
@@ -212,8 +218,7 @@ impl Builder {
       // Conditional jumps (Jcc)
       // To extract the condition, the primary opcode is required. Short
       // jumps are only one byte, but long jccs are prefixed with 0x0F.
-      let primary_opcode = instruction
-        .as_slice()
+      let primary_opcode = instruction_bytes
         .iter()
         .find(|op| **op != 0x0F)
         .expect("retrieving conditional jump primary op code");
@@ -228,6 +233,6 @@ impl Builder {
   fn is_instruction_in_branch(&self, instruction: &Instruction) -> bool {
     self
       .branch_address
-      .map_or(false, |offset| instruction.address() < offset)
+      .map_or(false, |offset| instruction.ip() < offset as u64)
   }
 }

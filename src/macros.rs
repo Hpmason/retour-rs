@@ -85,11 +85,11 @@ macro_rules! static_detour {
 
   // 6 — argument and return type (return/void)
   (@parse_prototype
-      ($($input:tt)*) | ($($argument_type:ty),*) -> $return_type:ty ; $($rest:tt)*) => {
+      ($($input:tt)*) | ($($argument_type:ty),* $(,)?) -> $return_type:ty ; $($rest:tt)*) => {
     $crate::static_detour!(
       @parse_terminator ($($input)* ($($argument_type)*) ($return_type)) | ; $($rest)*);
   };
-  (@parse_prototype ($($input:tt)*) | ($($argument_type:ty),*) $($rest:tt)*) => {
+  (@parse_prototype ($($input:tt)*) | ($($argument_type:ty),* $(,)?) $($rest:tt)*) => {
     $crate::static_detour!(@parse_terminator ($($input)* ($($argument_type)*) (())) | $($rest)*);
   };
 

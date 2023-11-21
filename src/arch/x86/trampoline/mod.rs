@@ -3,8 +3,8 @@ use crate::arch::x86::thunk;
 use crate::error::{Error, Result};
 use crate::pic;
 use iced_x86::{Decoder, DecoderOptions, Instruction};
-use std::mem;
 use std::ptr::slice_from_raw_parts;
+use std::{mem, slice};
 
 mod disasm;
 
@@ -59,7 +59,10 @@ impl Builder {
 
   /// Creates a trampoline with the supplied settings.
   ///
-  /// Margins larger than five bytes may lead to undefined behavior.
+  /// # Safety
+  ///
+  /// target..target+margin+15 must be valid to read as a u8 slice or behavior
+  /// may be undefined
   pub unsafe fn build(mut self) -> Result<Trampoline> {
     let mut emitter = pic::CodeEmitter::new();
 
@@ -70,13 +73,14 @@ impl Builder {
     // advance and it's invalid to make a slice that's too long we could make a
     // new Decoder before reading every individual instruction? but it'd still need
     // to be given a 15 byte slice to handle any valid x64 instruction
-    let slice = unsafe { &*slice_from_raw_parts(self.target as *const u8, self.margin + 15) };
-    let mut decoder = Decoder::new(
+    let target: *const u8 = self.target.cast();
+    let slice = unsafe { slice::from_raw_parts(std::hint::black_box(target), self.margin + 15) };
+    let decoder = Decoder::with_ip(
       (mem::size_of::<usize>() * 8) as u32,
       slice,
+      self.target as u64,
       DecoderOptions::NONE,
     );
-    decoder.set_ip(self.target as u64);
     for instruction in decoder {
       if instruction.is_invalid() {
         break;
@@ -98,7 +102,7 @@ impl Builder {
       // Determine whether enough bytes for the margin has been disassembled
       if self.total_bytes_disassembled >= self.margin && !self.finished {
         // Add a jump to the first instruction after the prolog
-        emitter.add_thunk(thunk::jmp(instruction.len() + instruction.ip() as usize));
+        emitter.add_thunk(thunk::jmp(instruction.next_ip() as usize));
         self.finished = true;
       }
 
@@ -148,7 +152,9 @@ impl Builder {
     instruction_bytes: &[u8],
     target: usize,
   ) -> Result<Box<dyn pic::Thunkable>> {
-    let displacement = (target - instruction.ip() as usize) as isize;
+    let displacement = target
+      .wrapping_sub(instruction.ip() as usize)
+      .wrapping_sub(instruction.len()) as isize;
     // If the instruction is an unconditional jump, processing stops here
     self.finished = instruction.is_unconditional_jump();
 

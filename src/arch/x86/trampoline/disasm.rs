@@ -30,7 +30,6 @@ impl InstructionExt for Instruction {
   fn rip_operand_target(&self) -> Option<u64> {
     self
       .op_kinds()
-      .into_iter()
       .find(|op| *op == OpKind::Memory && self.memory_base() == Register::RIP)
       .map(|_| self.memory_displacement64())
   }

@@ -8,7 +8,7 @@ use std::os::raw::c_void;
 use std::ptr::null;
 
 use windows::core::{Interface, HRESULT, HSTRING, PCWSTR};
-use windows::Win32::Foundation::{BOOL, HMODULE, HWND, LPARAM, LRESULT, WPARAM};
+use windows::Win32::Foundation::{GetLastError, BOOL, HMODULE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Direct3D::*;
 use windows::Win32::Graphics::Direct3D11::*;
 use windows::Win32::Graphics::Dxgi::Common::*;

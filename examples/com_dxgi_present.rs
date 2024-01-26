@@ -165,8 +165,16 @@ unsafe fn get_d3d11_vtables() -> *const IDXGISwapChain_Vtbl {
   let swapchain = out_swapchain.unwrap();
   let swapchain_vtbl: &IDXGISwapChain_Vtbl = swapchain.vtable();
 
-  CloseWindow(hwnd);
-  UnregisterClassW(window_class.lpszClassName, window_class.hInstance);
+  if !CloseWindow(hwnd).as_bool() {
+    println!("Failed to close window. Error: {:?}", GetLastError());
+  }
+  if !DestroyWindow(hwnd).as_bool() {
+    println!("Failed to destroy window. Error: {:?}", GetLastError());
+  }
+  // Needs fresh pointer to class name (else error 1411) + call DestroyWindow first (else error 1412)
+  if !UnregisterClassW(PCWSTR(HSTRING::from("DxHookWindowClass").as_wide().as_ptr()), window_class.hInstance).as_bool() {
+    println!("Failed to unregister window class. Error: {:?}", GetLastError());
+  }
 
   swapchain_vtbl
 }

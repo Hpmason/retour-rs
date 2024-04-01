@@ -33,6 +33,7 @@ default = []
 nightly = []
 thiscall-abi = ["nightly"]
 static-detour = ["nightly"]
+extra-impls = []
 
 [[example]]
 name = "messageboxw_detour"

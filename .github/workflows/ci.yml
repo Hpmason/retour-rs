@@ -17,9 +17,9 @@ jobs:
             triple: x86_64-pc-windows-msvc
           # Use because of broken GH Action
           # https://github.com/egor-tensin/setup-mingw/issues/6#issuecomment-1215265290
-          - os: windows-2019
+          - os: windows-latest
             triple: i686-pc-windows-gnu
-          - os: windows-2019
+          - os: windows-latest
             triple: x86_64-pc-windows-gnu
           
           - os: ubuntu-latest
@@ -53,19 +53,20 @@ jobs:
       # Install linux deps
       # - if: matrix.target.triple == 'x86_64-unknown-linux-musl'
       #   run: sudo apt-get install musl-tools
-            # Windows mingw 64bit
+      # Windows mingw 64bit
       - if: matrix.target.triple == 'x86_64-pc-windows-gnu'
         name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2
         with:
           platform: x64
+          version: 12.2.0 # https://github.com/egor-tensin/setup-mingw/issues/14
       # Windows mingw 32bit
       - if: matrix.target.triple == 'i686-pc-windows-gnu'
         name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2
         with:
           platform: x86
-      
+          version: 12.2.0 # https://github.com/egor-tensin/setup-mingw/issues/14      
       - name: Cargo Check - Default Features Only
         run: ${{ matrix.target.rustflags }} cargo check --target ${{ matrix.target.triple }}
       
@@ -77,3 +78,4 @@ jobs:
       
       - name: Cargo Tests - Nightly
         run: ${{ matrix.target.rustflags }} cargo +nightly test --target ${{ matrix.target.triple }} --all-features
+

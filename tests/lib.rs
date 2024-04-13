@@ -8,6 +8,7 @@ extern "C" fn sub_detour(x: i32, y: i32) -> i32 {
   unsafe { std::ptr::read_volatile(&x as *const i32) - y }
 }
 
+
 mod raw {
   use super::*;
   use retour::RawDetour;
@@ -115,5 +116,14 @@ mod statik {
       assert_eq!(add(10, 5), 15);
     }
     Ok(())
+  }
+}
+
+#[cfg(all(feature = "extra-impls", feature = "static-detour"))]
+mod extra_impls {
+  use retour::static_detour;
+
+  static_detour! {
+    pub static big_fn: fn(i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32);
   }
 }

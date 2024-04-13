@@ -141,8 +141,10 @@ macro_rules! static_detour {
   // Associates each argument type with a dummy name.
   (@argument_names ($label:ident) ($($input:tt)*) ($($token:tt)*)) => {
     $crate::static_detour!(@argument_names ($label) ($($input)*)(
-      __arg_0  __arg_1  __arg_2  __arg_3  __arg_4  __arg_5  __arg_6
-      __arg_7  __arg_8  __arg_9  __arg_10 __arg_11 __arg_12 __arg_13
+      __arg_0   __arg_1   __arg_2  __arg_3  __arg_4  __arg_5  __arg_6
+      __arg_7   __arg_8   __arg_9  __arg_10 __arg_11 __arg_12 __arg_13
+      __arg_14  __arg_15  __arg_16 __arg_17 __arg_18 __arg_19 __arg_20
+      __arg_21  __arg_22  __arg_23 __arg_24 __arg_25
     )($($token)*)());
   };
   (@argument_names

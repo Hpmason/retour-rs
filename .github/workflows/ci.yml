@@ -53,18 +53,20 @@ jobs:
       # Install linux deps
       # - if: matrix.target.triple == 'x86_64-unknown-linux-musl'
       #   run: sudo apt-get install musl-tools
-            # Windows mingw 64bit
+      # Windows mingw 64bit
       - if: matrix.target.triple == 'x86_64-pc-windows-gnu'
         name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2
         with:
           platform: x64
+          version: 12.2.0
       # Windows mingw 32bit
       - if: matrix.target.triple == 'i686-pc-windows-gnu'
         name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2
         with:
           platform: x86
+          version: 12.2.0
       
       - name: Cargo Check - Default Features Only
         run: ${{ matrix.target.rustflags }} cargo check --target ${{ matrix.target.triple }}

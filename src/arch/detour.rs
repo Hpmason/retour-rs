@@ -111,7 +111,8 @@ impl Detour {
 impl Drop for Detour {
   /// Disables the detour, if enabled.
   fn drop(&mut self) {
-    debug_assert!(unsafe { self.disable().is_ok() });
+    let did_succeed = unsafe { self.disable() }.is_ok();
+    debug_assert!(did_succeed);
   }
 }
 

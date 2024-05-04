@@ -3,7 +3,6 @@ use crate::arch::x86::thunk;
 use crate::error::{Error, Result};
 use crate::pic;
 use iced_x86::{Decoder, DecoderOptions, Instruction};
-use std::ptr::slice_from_raw_parts;
 use std::{mem, slice};
 
 mod disasm;

@@ -56,6 +56,8 @@
 //!   of *unboxed_closures* and *tuple_trait*. The feature also enables a more
 //!   extensive test suite. *Requires nightly compiler*
 //! - **thiscall-abi**: Required for hooking functions that use the "thiscall" ABI. *Requires 1.73.0 or greater*
+//! - **28-args**: Allows for detouring functions up to 28 arguments (default is 14)
+//! - **42-args**: Allows for detouring functions up to 42 arguments
 //!
 //! ## Platforms
 //!

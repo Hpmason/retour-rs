@@ -8,6 +8,7 @@ extern "C" fn sub_detour(x: i32, y: i32) -> i32 {
   unsafe { std::ptr::read_volatile(&x as *const i32) - y }
 }
 
+
 mod raw {
   use super::*;
   use retour::RawDetour;
@@ -114,6 +115,43 @@ mod statik {
       assert_eq!(DetourAdd.call(10, 5), 15);
       assert_eq!(add(10, 5), 15);
     }
+    Ok(())
+  }
+}
+
+#[cfg(feature = "28-args")]
+mod args_28 {
+  use super::*;
+  use retour::GenericDetour;
+
+
+  type I = i32;
+  type BigFn = fn(I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I);
+
+  fn a(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  fn b(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  #[test]
+  fn sanity_check() -> Result<()> {
+    let hook = unsafe { GenericDetour::<BigFn>::new(a, b) };
+    Ok(())
+  }
+}
+#[cfg(feature = "42-args")]
+mod args_42 {
+  use super::*;
+  use retour::GenericDetour;
+
+
+  type I = i32;
+  type BiggerFn = fn(I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I);
+
+  fn a(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I,
+    _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  fn b(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I,
+    _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  #[test]
+  fn sanity_check() -> Result<()> {
+    let hook = unsafe { GenericDetour::<BiggerFn>::new(a, b)? };
     Ok(())
   }
 }

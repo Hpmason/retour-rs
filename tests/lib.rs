@@ -119,11 +119,39 @@ mod statik {
   }
 }
 
-#[cfg(all(feature = "extra-impls", feature = "static-detour"))]
-mod extra_impls {
-  use retour::static_detour;
+#[cfg(feature = "28-args")]
+mod args_28 {
+  use super::*;
+  use retour::GenericDetour;
 
-  static_detour! {
-    pub static big_fn: fn(i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32);
+
+  type I = i32;
+  type BigFn = fn(I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I);
+
+  fn a(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  fn b(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  #[test]
+  fn sanity_check() -> Result<()> {
+    let hook = unsafe { GenericDetour::<BigFn>::new(a, b) };
+    Ok(())
+  }
+}
+#[cfg(feature = "42-args")]
+mod args_42 {
+  use super::*;
+  use retour::GenericDetour;
+
+
+  type I = i32;
+  type BiggerFn = fn(I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I);
+
+  fn a(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I,
+    _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  fn b(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I,
+    _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  #[test]
+  fn sanity_check() -> Result<()> {
+    let hook = unsafe { GenericDetour::<BiggerFn>::new(a, b)? };
+    Ok(())
   }
 }

@@ -14,7 +14,7 @@ mod tests {
   use crate::error::{Error, Result};
   use crate::RawDetour;
   use matches::assert_matches;
-  use std::arch::asm;
+  use std::arch::naked_asm;
   use std::mem;
 
   /// Default test case function definition.
@@ -41,7 +41,7 @@ mod tests {
   fn detour_relative_branch() -> Result<()> {
     #[naked]
     unsafe extern "C" fn branch_ret5() -> i32 {
-      asm!(
+      naked_asm!(
         "
             xor eax, eax
             je 5f
@@ -51,7 +51,6 @@ mod tests {
             mov eax, 5
           2:
             ret",
-        options(noreturn)
       );
     }
 
@@ -62,7 +61,7 @@ mod tests {
   fn detour_hotpatch() -> Result<()> {
     #[naked]
     unsafe extern "C" fn hotpatch_ret0() -> i32 {
-      asm!(
+      naked_asm!(
         "
             nop
             nop
@@ -72,7 +71,6 @@ mod tests {
             xor eax, eax
             ret
             mov eax, 5",
-        options(noreturn)
       );
     }
 
@@ -83,14 +81,13 @@ mod tests {
   fn detour_padding_after() -> Result<()> {
     #[naked]
     unsafe extern "C" fn padding_after_ret0() -> i32 {
-      asm!(
+      naked_asm!(
         "
             mov edi, edi
             xor eax, eax
             ret
             nop
             nop",
-        options(noreturn)
       );
     }
 
@@ -101,14 +98,13 @@ mod tests {
   fn detour_external_loop() {
     #[naked]
     unsafe extern "C" fn external_loop() -> i32 {
-      asm!(
+      naked_asm!(
         "
             loop 2f
             nop
             nop
             nop
             2:",
-        options(noreturn)
       );
     }
 
@@ -122,7 +118,7 @@ mod tests {
   fn detour_rip_relative_pos() -> Result<()> {
     #[naked]
     unsafe extern "C" fn rip_relative_ret195() -> i32 {
-      asm!(
+      naked_asm!(
         "
             xor eax, eax
             mov al, [rip+0x3]
@@ -130,7 +126,6 @@ mod tests {
             nop
             nop
             ret",
-        options(noreturn)
       );
     }
 
@@ -142,12 +137,11 @@ mod tests {
   fn detour_rip_relative_neg() -> Result<()> {
     #[naked]
     unsafe extern "C" fn rip_relative_prolog_ret49() -> i32 {
-      asm!(
+      naked_asm!(
         "
             xor eax, eax
             mov al, [rip-0x8]
             ret",
-        options(noreturn)
       );
     }
 

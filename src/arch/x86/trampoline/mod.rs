@@ -2,7 +2,7 @@ use self::disasm::*;
 use crate::arch::x86::thunk;
 use crate::error::{Error, Result};
 use crate::pic;
-use iced_x86::{Decoder, DecoderOptions, Instruction};
+use iced_x86::{Decoder, DecoderOptions, Instruction, OpKind};
 use std::ptr::slice_from_raw_parts;
 use std::{mem, slice};
 
@@ -166,6 +166,20 @@ impl Builder {
     // These need to be captured by the closure
     let instruction_address = instruction.ip() as isize;
     let instruction_bytes = instruction_bytes.to_vec();
+    let immediate_size = instruction.op_kinds().find_map(|kind| {
+        match kind {
+            OpKind::Immediate8 => Some(1),
+            OpKind::Immediate8_2nd => Some(1),
+            OpKind::Immediate16 => Some(2),
+            OpKind::Immediate32 => Some(4),
+            OpKind::Immediate64 => Some(8),
+            OpKind::Immediate8to16 => Some(1),
+            OpKind::Immediate8to32 => Some(1),
+            OpKind::Immediate8to64 => Some(1),
+            OpKind::Immediate32to64 => Some(4),
+            _ => None,
+        }
+    }).unwrap_or(0);
 
     Ok(Box::new(pic::UnsafeThunk::new(
       move |offset| {
@@ -179,12 +193,12 @@ impl Builder {
           .wrapping_add(displacement);
         assert!(crate::arch::is_within_range(adjusted_displacement));
 
-        // The displacement value is placed at (instruction - disp32)
-        let index = instruction_bytes.len() - mem::size_of::<u32>();
+        // The displacement value is placed at (instruction - disp32 - imm)
+        let index = instruction_bytes.len() - mem::size_of::<u32>() - immediate_size;
 
         // Write the adjusted displacement offset to the operand
         let as_bytes: [u8; 4] = (adjusted_displacement as u32).to_ne_bytes();
-        bytes[index..instruction_bytes.len()].copy_from_slice(&as_bytes);
+        bytes[index..index+as_bytes.len()].copy_from_slice(&as_bytes);
         bytes
       },
       instruction.len(),

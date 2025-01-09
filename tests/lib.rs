@@ -155,3 +155,52 @@ mod args_42 {
     Ok(())
   }
 }
+
+#[cfg(target_arch="x86_64")]
+mod relative_ip {
+  use std::arch::global_asm;
+  use super::*;
+  use retour::GenericDetour;
+
+  unsafe extern "C" {
+    unsafe fn relative_ip_add_3(x: i32, y: i32) -> i32;
+  }
+
+  static mut RELATIVE_IP_VAR_C: i32 = 0;
+
+  global_asm!(r#"
+      .global relative_ip_add_3
+      relative_ip_add_3:
+        mov dword ptr [rip - {var_c}], 3    // C7 05 XX XX XX XX 03 00 00 00
+        xor rax, rax                        // 48 31 C0
+        mov eax, dword ptr [rip - {var_c}]  // 8B 05 XX XX XX XX
+        add rax, rcx                        // 48 01 C8
+        add rax, rdx                        // 48 01 D0
+        ret                                 // C3
+    "#,
+    var_c = sym RELATIVE_IP_VAR_C,
+  );
+
+  type UnsafeFnAdd = unsafe extern "C" fn(i32, i32) -> i32;
+
+  #[test]
+  fn test() -> Result<()> {
+    unsafe {
+      let hook = GenericDetour::<UnsafeFnAdd>::new(relative_ip_add_3, sub_detour)
+        .expect("target or source is not usable for detouring");
+
+      assert_eq!(relative_ip_add_3(10, 5), 15+3);
+      assert_eq!(hook.call(10, 5), 15+3);
+      hook.enable()?;
+      {
+        assert_eq!(hook.call(10, 5), 15+3);
+        assert_eq!(relative_ip_add_3(10, 5), 5);
+      }
+      hook.disable()?;
+      assert_eq!(hook.call(10, 5), 15+3);
+      assert_eq!(relative_ip_add_3(10, 5), 15+3);
+    }
+
+    Ok(())
+  }
+}

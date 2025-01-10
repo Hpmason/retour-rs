@@ -168,6 +168,7 @@ mod relative_ip {
 
   static mut RELATIVE_IP_VAR_C: i32 = 0;
 
+  #[cfg(target_family="windows")]
   global_asm!(r#"
       .global relative_ip_add_3
       relative_ip_add_3:
@@ -176,6 +177,20 @@ mod relative_ip {
         mov eax, dword ptr [rip - {var_c}]  // 8B 05 XX XX XX XX
         add rax, rcx                        // 48 01 C8
         add rax, rdx                        // 48 01 D0
+        ret                                 // C3
+    "#,
+    var_c = sym RELATIVE_IP_VAR_C,
+  );
+
+  #[cfg(target_family="unix")]
+  global_asm!(r#"
+      .global relative_ip_add_3
+      relative_ip_add_3:
+        mov dword ptr [rip - {var_c}], 3    // C7 05 XX XX XX XX 03 00 00 00
+        xor rax, rax                        // 48 31 C0
+        mov eax, dword ptr [rip - {var_c}]  // 8B 05 XX XX XX XX
+        add rax, rdi                        // 48 01 F8
+        add rax, rsi                        // 48 01 F0
         ret                                 // C3
     "#,
     var_c = sym RELATIVE_IP_VAR_C,

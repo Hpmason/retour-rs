@@ -162,58 +162,45 @@ mod relative_ip {
   use super::*;
   use retour::GenericDetour;
 
+  static VALUE: i32 = 3;
+
+  global_asm!(r#"
+      .global check_value
+      check_value:
+        cmp  dword ptr [rip - {value}], 5   // 83 3D XX XX XX XX 05 // XX - displacement bytes
+        setz al                             // 0F 94 C0
+        and  al, 1                          // 24 01
+        ret                                 // C3
+    "#,
+    value = sym VALUE,
+  );
+
+  type FnCheckValue = extern "C" fn() -> bool;
+
   unsafe extern "C" {
-    unsafe fn relative_ip_add_3(x: i32, y: i32) -> i32;
+    safe fn check_value() -> bool;
   }
 
-  static mut RELATIVE_IP_VAR_C: i32 = 0;
-
-  #[cfg(target_family="windows")]
-  global_asm!(r#"
-      .global relative_ip_add_3
-      relative_ip_add_3:
-        mov dword ptr [rip - {var_c}], 3    // C7 05 XX XX XX XX 03 00 00 00
-        xor rax, rax                        // 48 31 C0
-        mov eax, dword ptr [rip - {var_c}]  // 8B 05 XX XX XX XX
-        add rax, rcx                        // 48 01 C8
-        add rax, rdx                        // 48 01 D0
-        ret                                 // C3
-    "#,
-    var_c = sym RELATIVE_IP_VAR_C,
-  );
-
-  #[cfg(target_family="unix")]
-  global_asm!(r#"
-      .global relative_ip_add_3
-      relative_ip_add_3:
-        mov dword ptr [rip - {var_c}], 3    // C7 05 XX XX XX XX 03 00 00 00
-        xor rax, rax                        // 48 31 C0
-        mov eax, dword ptr [rip - {var_c}]  // 8B 05 XX XX XX XX
-        add rax, rdi                        // 48 01 F8
-        add rax, rsi                        // 48 01 F0
-        ret                                 // C3
-    "#,
-    var_c = sym RELATIVE_IP_VAR_C,
-  );
-
-  type UnsafeFnAdd = unsafe extern "C" fn(i32, i32) -> i32;
+  extern fn new_check_value() -> bool {
+    true
+  }
 
   #[test]
   fn test() -> Result<()> {
     unsafe {
-      let hook = GenericDetour::<UnsafeFnAdd>::new(relative_ip_add_3, sub_detour)
+      let hook = GenericDetour::<FnCheckValue>::new(check_value, new_check_value)
         .expect("target or source is not usable for detouring");
 
-      assert_eq!(relative_ip_add_3(10, 5), 15+3);
-      assert_eq!(hook.call(10, 5), 15+3);
+      assert_eq!(check_value(), false);
+      assert_eq!(hook.call(), false);
       hook.enable()?;
       {
-        assert_eq!(hook.call(10, 5), 15+3);
-        assert_eq!(relative_ip_add_3(10, 5), 5);
+        assert_eq!(hook.call(), false);
+        assert_eq!(check_value(), true);
       }
       hook.disable()?;
-      assert_eq!(hook.call(10, 5), 15+3);
-      assert_eq!(relative_ip_add_3(10, 5), 15+3);
+      assert_eq!(hook.call(), false);
+      assert_eq!(check_value(), false);
     }
 
     Ok(())

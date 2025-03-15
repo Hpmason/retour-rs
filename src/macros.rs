@@ -181,15 +181,22 @@ macro_rules! impl_hookable {
   (@impl_all ($($nm:ident : $ty:ident),*)) => {
     impl_hookable!(@impl_pair ($($nm : $ty),*) (                  fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "cdecl"    fn($($ty),*) -> Ret));
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "cdecl-unwind"    fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "stdcall"  fn($($ty),*) -> Ret));
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "stdcall-unwind"  fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "fastcall" fn($($ty),*) -> Ret));
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "fastcall-unwind" fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "win64"    fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "C"        fn($($ty),*) -> Ret));
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "C-unwind"        fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "system"   fn($($ty),*) -> Ret));
 
     #[cfg(feature = "thiscall-abi")]
     #[cfg_attr(docsrs, doc(cfg(feature = "thiscall-abi")))]
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "thiscall" fn($($ty),*) -> Ret));
+    #[cfg(feature = "thiscall-abi")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "thiscall-abi")))]
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "thiscall-unwind" fn($($ty),*) -> Ret));
   };
 
   (@impl_pair ($($nm:ident : $ty:ident),*) ($($fn_t:tt)*)) => {

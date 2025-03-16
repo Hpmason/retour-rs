@@ -18,7 +18,7 @@ mod tests {
   use std::mem;
 
   /// Default test case function definition.
-  type CRet = unsafe extern "C-unwind" fn() -> i32;
+  type CRet = unsafe extern "C" fn() -> i32;
 
   /// Detours a C function returning an integer, and asserts its return value.
   #[inline(never)]
@@ -40,7 +40,7 @@ mod tests {
   #[test]
   fn detour_relative_branch() -> Result<()> {
     #[naked]
-    unsafe extern "C-unwind" fn branch_ret5() -> i32 {
+    unsafe extern "C" fn branch_ret5() -> i32 {
       naked_asm!(
         "
             xor eax, eax
@@ -60,7 +60,7 @@ mod tests {
   #[test]
   fn detour_hotpatch() -> Result<()> {
     #[naked]
-    unsafe extern "C-unwind" fn hotpatch_ret0() -> i32 {
+    unsafe extern "C" fn hotpatch_ret0() -> i32 {
       naked_asm!(
         "
             nop
@@ -80,7 +80,7 @@ mod tests {
   #[test]
   fn detour_padding_after() -> Result<()> {
     #[naked]
-    unsafe extern "C-unwind" fn padding_after_ret0() -> i32 {
+    unsafe extern "C" fn padding_after_ret0() -> i32 {
       naked_asm!(
         "
             mov edi, edi
@@ -97,7 +97,7 @@ mod tests {
   #[test]
   fn detour_external_loop() {
     #[naked]
-    unsafe extern "C-unwind" fn external_loop() -> i32 {
+    unsafe extern "C" fn external_loop() -> i32 {
       naked_asm!(
         "
             loop 2f
@@ -117,7 +117,7 @@ mod tests {
   #[cfg(target_arch = "x86_64")]
   fn detour_rip_relative_pos() -> Result<()> {
     #[naked]
-    unsafe extern "C-unwind" fn rip_relative_ret195() -> i32 {
+    unsafe extern "C" fn rip_relative_ret195() -> i32 {
       naked_asm!(
         "
             xor eax, eax
@@ -136,7 +136,7 @@ mod tests {
   #[cfg(target_arch = "x86_64")]
   fn detour_rip_relative_neg() -> Result<()> {
     #[naked]
-    unsafe extern "C-unwind" fn rip_relative_prolog_ret49() -> i32 {
+    unsafe extern "C" fn rip_relative_prolog_ret49() -> i32 {
       naked_asm!(
         "
             xor eax, eax
@@ -149,7 +149,7 @@ mod tests {
   }
 
   /// Default detour target.
-  unsafe extern "C-unwind" fn ret10() -> i32 {
+  unsafe extern "C" fn ret10() -> i32 {
     10
   }
 }

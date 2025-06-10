@@ -30,6 +30,7 @@ ctor = "0.2.2"
 
 [features]
 default = []
+unwind-abis = []
 nightly = []
 thiscall-abi = ["nightly"]
 static-detour = ["nightly"]

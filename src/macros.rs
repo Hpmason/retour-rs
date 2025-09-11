@@ -179,16 +179,19 @@ macro_rules! impl_hookable {
   };
 
   (@impl_all ($($nm:ident : $ty:ident),*)) => {
-    impl_hookable!(@impl_pair ($($nm : $ty),*) (                  fn($($ty),*) -> Ret));
-    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "cdecl"    fn($($ty),*) -> Ret));
-    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "stdcall"  fn($($ty),*) -> Ret));
-    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "fastcall" fn($($ty),*) -> Ret));
-    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "win64"    fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "C"        fn($($ty),*) -> Ret));
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "Rust"     fn($($ty),*) -> Ret));
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "system"   fn($($ty),*) -> Ret));
+    #[cfg(target_arch = "x86")]
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "cdecl"    fn($($ty),*) -> Ret));
+    #[cfg(target_arch = "x86")]
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "fastcall" fn($($ty),*) -> Ret));
+    #[cfg(target_arch = "x86")]
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "stdcall"  fn($($ty),*) -> Ret));
+    #[cfg(target_arch = "x86_64")]
+    impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "win64"    fn($($ty),*) -> Ret));
 
-    #[cfg(feature = "thiscall-abi")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "thiscall-abi")))]
+    #[cfg(any(docsrs, all(target_arch = "x86", feature = "thiscall-abi")))]
     impl_hookable!(@impl_pair ($($nm : $ty),*) (extern "thiscall" fn($($ty),*) -> Ret));
   };
 

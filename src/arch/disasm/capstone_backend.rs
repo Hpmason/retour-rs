@@ -91,7 +91,6 @@ impl CapstoneDisasm {
         let mut branch_target = None;
         let mut has_rip_relative = false;
         let mut rip_relative_target = None;
-        let mut imm_size: usize = 0;
 
         if let Some(ref d) = detail {
           let arch_detail = d.arch_detail();
@@ -102,7 +101,6 @@ impl CapstoneDisasm {
                   if is_branch || is_call {
                     branch_target = Some(imm as u64);
                   }
-                  imm_size = op.size as usize;
                 },
                 X86OperandType::Mem(mem) => {
                   if mem.base().0 as u32 == X86Reg::X86_REG_RIP as u32 {
@@ -131,7 +129,6 @@ impl CapstoneDisasm {
           branch_target,
           has_rip_relative,
           rip_relative_target,
-          imm_size,
         }
       })
       .collect()
@@ -196,8 +193,6 @@ pub struct OwnedInsn {
   has_rip_relative: bool,
   #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
   rip_relative_target: Option<u64>,
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  imm_size: usize,
 }
 
 impl OwnedInsn {
@@ -305,11 +300,6 @@ impl OwnedInsn {
       }
     }
     None
-  }
-
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  pub fn imm_size(&self) -> usize {
-    self.imm_size
   }
 
   pub fn next_ip(&self) -> u64 {

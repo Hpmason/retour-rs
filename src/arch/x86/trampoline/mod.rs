@@ -164,7 +164,11 @@ impl Builder {
     let instruction_bytes = instruction.bytes().to_vec();
     let instruction_len = instruction.len();
 
-    let immediate_size = instruction.imm_size();
+    // Calculate the encoded immediate size by subtracting known components.
+    // For RIP-relative instructions, the displacement is always disp32 (4 bytes).
+    // The immediate encoding size = total_len - prefix_len - opcode_len - modrm_len - disp32_len
+    // We find the displacement offset by searching backwards from the end.
+    let disp_offset = Self::find_disp32_offset(&instruction_bytes);
 
     Ok(Box::new(pic::UnsafeThunk::new(
       move |offset| {
@@ -178,16 +182,64 @@ impl Builder {
           .wrapping_add(displacement);
         assert!(crate::arch::is_within_range(adjusted_displacement));
 
-        // The displacement value is placed at (instruction - disp32 - imm)
-        let index = instruction_bytes.len() - mem::size_of::<u32>() - immediate_size;
-
         // Write the adjusted displacement offset to the operand
         let as_bytes: [u8; 4] = (adjusted_displacement as u32).to_ne_bytes();
-        bytes[index..index + as_bytes.len()].copy_from_slice(&as_bytes);
+        bytes[disp_offset..disp_offset + 4].copy_from_slice(&as_bytes);
         bytes
       },
       instruction_len,
     )))
+  }
+
+  /// Find the offset of the disp32 in an instruction with RIP-relative addressing.
+  /// For RIP-relative, ModR/M has mod=00 and r/m=101 (binary), meaning disp32 follows immediately.
+  fn find_disp32_offset(bytes: &[u8]) -> usize {
+    // Skip prefixes (including REX, 66, 67, F2, F3, segment overrides, etc.)
+    let mut offset = 0;
+
+    while offset < bytes.len() {
+      let b = bytes[offset];
+      match b {
+        // Legacy prefixes
+        0x26 | 0x2E | 0x36 | 0x3E | 0x64 | 0x65 | 0x66 | 0x67 | 0xF0 | 0xF2 | 0xF3 => {
+          offset += 1;
+        },
+        // REX prefixes (0x40-0x4F)
+        0x40..=0x4F => {
+          offset += 1;
+        },
+        _ => break,
+      }
+    }
+
+    // Now we're at the opcode
+    let opcode_start = offset;
+
+    // Check for 2-byte opcode (0x0F prefix)
+    if offset < bytes.len() && bytes[offset] == 0x0F {
+      offset += 1;
+      // Check for 3-byte opcode (0x0F 0x38 or 0x0F 0x3A)
+      if offset < bytes.len() && (bytes[offset] == 0x38 || bytes[offset] == 0x3A) {
+        offset += 1;
+      }
+    }
+
+    // Skip the primary opcode byte
+    offset += 1;
+
+    // Now we should be at ModR/M byte
+    // For RIP-relative addressing, the displacement immediately follows ModR/M
+    // (there's no SIB byte when mod=00 and r/m=101)
+    offset += 1; // Skip ModR/M
+
+    // Return the offset where disp32 starts
+    // Sanity check: make sure we have room for 4 bytes
+    if offset + 4 <= bytes.len() {
+      offset
+    } else {
+      // Fallback: assume displacement is at the end minus 4 bytes
+      bytes.len().saturating_sub(4)
+    }
   }
 
   /// Processes relative branches (e.g `call`, `loop`, `jne`).

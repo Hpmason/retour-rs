@@ -122,41 +122,19 @@ mod tests {
   use crate::Result;
   use matches::assert_matches;
 
-  #[cfg(all(
-    target_os = "macos",
-    target_arch = "aarch64",
-    feature = "static-detour"
-  ))]
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
   #[repr(align(16384))]
-  struct DetourTestSectionAlign([u8; 16384]);
+  struct DetourTestSectionAlign(#[allow(dead_code)] [u8; 16384]);
 
-  #[cfg(all(
-    target_os = "macos",
-    target_arch = "aarch64",
-    feature = "static-detour"
-  ))]
-  #[cfg_attr(
-    all(
-      target_os = "macos",
-      target_arch = "aarch64",
-      feature = "static-detour"
-    ),
-    link_section = "__TEXT,__detour_test"
-  )]
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[link_section = "__TEXT,__detour_test"]
   #[used]
   static DETOUR_TEST_SECTION_ALIGN: DetourTestSectionAlign = DetourTestSectionAlign([0; 16384]);
 
   #[test]
   fn detours_share_target() -> Result<()> {
     #[inline(never)]
-    #[cfg_attr(
-      all(
-        target_os = "macos",
-        target_arch = "aarch64",
-        feature = "static-detour"
-      ),
-      link_section = "__TEXT,__detour_test"
-    )]
+    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
     extern "C" fn add(x: i32, y: i32) -> i32 {
       unsafe { std::ptr::read_volatile(&x as *const i32) + y }
     }
@@ -189,14 +167,7 @@ mod tests {
   #[test]
   fn same_detour_and_target() {
     #[inline(never)]
-    #[cfg_attr(
-      all(
-        target_os = "macos",
-        target_arch = "aarch64",
-        feature = "static-detour"
-      ),
-      link_section = "__TEXT,__detour_test"
-    )]
+    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
     extern "C" fn add(x: i32, y: i32) -> i32 {
       unsafe { std::ptr::read_volatile(&x as *const i32) + y }
     }

@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use crate::pic::{FixedThunk, Thunkable};
 use generic_array::{typenum, GenericArray};
 
@@ -45,7 +43,7 @@ pub fn jmp_rel(destination: usize) -> Box<dyn Thunkable> {
     let imm26 = (offset as u32) & 0x03FF_FFFF;
     let instruction = 0x14000000 | imm26;
 
-    GenericArray::clone_from_slice(&instruction.to_le_bytes())
+    GenericArray::from_array(instruction.to_le_bytes())
   }))
 }
 
@@ -62,7 +60,7 @@ pub fn call_rel(destination: usize) -> Box<dyn Thunkable> {
     let imm26 = (offset as u32) & 0x03FF_FFFF;
     let instruction = 0x94000000 | imm26;
 
-    GenericArray::clone_from_slice(&instruction.to_le_bytes())
+    GenericArray::from_array(instruction.to_le_bytes())
   }))
 }
 

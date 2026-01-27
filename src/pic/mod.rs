@@ -1,5 +1,6 @@
 pub use self::emitter::CodeEmitter;
-pub use self::thunk::FixedThunk;
+#[allow(unused_imports)]
+pub use self::thunk::{FixedThunk, UnsafeThunk};
 
 mod emitter;
 mod thunk;

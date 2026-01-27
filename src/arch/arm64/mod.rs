@@ -13,6 +13,15 @@ mod tests {
   use crate::RawDetour;
   use std::mem;
 
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[repr(align(16384))]
+  struct DetourTestSectionAlign(#[allow(dead_code)] [u8; 16384]);
+
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[link_section = "__TEXT,__detour_test"]
+  #[used]
+  static DETOUR_TEST_SECTION_ALIGN: DetourTestSectionAlign = DetourTestSectionAlign([0; 16384]);
+
   type CRet = unsafe extern "C" fn() -> i32;
 
   #[inline(never)]
@@ -34,6 +43,7 @@ mod tests {
   #[test]
   fn detour_simple() -> Result<()> {
     #[inline(never)]
+    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
     unsafe extern "C" fn ret5() -> i32 {
       let result = 5i32;
       std::hint::black_box(result);
@@ -46,6 +56,7 @@ mod tests {
     unsafe { detour_test(mem::transmute(ret5 as *const () as usize), 5) }
   }
 
+  #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
   unsafe extern "C" fn ret10() -> i32 {
     10
   }

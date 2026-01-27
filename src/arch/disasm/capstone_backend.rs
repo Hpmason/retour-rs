@@ -98,7 +98,7 @@ impl CapstoneDisasm {
             for op in x86_detail.operands() {
               match op.op_type {
                 X86OperandType::Imm(imm) => {
-                  if is_branch || is_call {
+                  if is_branch || is_call || is_loop {
                     branch_target = Some(imm as u64);
                   }
                 },

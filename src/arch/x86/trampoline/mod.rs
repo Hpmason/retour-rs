@@ -119,7 +119,7 @@ impl Builder {
     }
 
     if let Some(target) = instruction.branch_target() {
-      if instruction.is_branch() || instruction.is_call() {
+      if instruction.is_branch() || instruction.is_call() || instruction.is_loop() {
         return self.handle_relative_branch(instruction, target as usize);
       }
     }

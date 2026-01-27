@@ -7,9 +7,8 @@ use std::error::Error;
 use std::ffi::c_int;
 use std::os::raw::c_void;
 use std::{ffi::CString, iter, mem};
-use windows::core::{PCSTR, PCWSTR};
-use windows::w;
-use windows::Win32::Foundation::{BOOL, HANDLE, HWND};
+use windows::core::{w, PCSTR, PCWSTR};
+use windows::Win32::Foundation::{HANDLE, HWND};
 use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
 use windows::Win32::System::SystemServices::{
   DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH,
@@ -64,7 +63,7 @@ fn get_module_symbol_address(module: &str, symbol: &str) -> Option<usize> {
 }
 
 #[no_mangle]
-unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: *mut c_void) -> BOOL {
+unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: *mut c_void) -> i32 {
   match reason {
     DLL_PROCESS_ATTACH => {
       println!("attaching");
@@ -77,5 +76,5 @@ unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: *mut c
     DLL_THREAD_DETACH => {},
     _ => {},
   };
-  return BOOL::from(true);
+  1
 }

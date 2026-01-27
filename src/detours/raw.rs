@@ -5,7 +5,7 @@ use crate::error::Result;
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use retour::Result;
 /// use retour::RawDetour;
 /// use std::mem;

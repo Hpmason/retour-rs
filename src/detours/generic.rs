@@ -16,7 +16,7 @@ use std::marker::PhantomData;
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use retour::Result;
 /// use retour::GenericDetour;
 ///

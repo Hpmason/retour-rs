@@ -93,10 +93,15 @@ impl Patcher {
 
   #[cfg(target_os = "linux")]
   fn flush_icache(ptr: *const u8, len: usize) {
+    // The libc crate doesn't export __clear_cache on all platforms.
+    // Don't know why, but let's declare it an extern function.
+    extern "C" {
+      fn __clear_cache(start: *mut libc::c_void, end: *mut libc::c_void);
+    }
     unsafe {
-      libc::__clear_cache(
-        ptr as *mut libc::c_char,
-        (ptr as usize + len) as *mut libc::c_char,
+      __clear_cache(
+        ptr as *mut libc::c_void,
+        (ptr as usize + len) as *mut libc::c_void,
       );
     }
   }

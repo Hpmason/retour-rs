@@ -192,7 +192,7 @@ mod args_28 {
   }
   #[test]
   fn sanity_check() -> Result<()> {
-    let hook = unsafe { GenericDetour::<BigFn>::new(a, b) };
+    let _hook = unsafe { GenericDetour::<BigFn>::new(a, b) };
     Ok(())
   }
 }
@@ -333,7 +333,7 @@ mod args_42 {
   }
   #[test]
   fn sanity_check() -> Result<()> {
-    let hook = unsafe { GenericDetour::<BiggerFn>::new(a, b)? };
+    let _hook = unsafe { GenericDetour::<BiggerFn>::new(a, b)? };
     Ok(())
   }
 }

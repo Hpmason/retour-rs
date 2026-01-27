@@ -149,7 +149,7 @@ unsafe fn get_d3d11_vtables() -> *const IDXGISwapChain_Vtbl {
   D3D11CreateDeviceAndSwapChain(
     None,
     D3D_DRIVER_TYPE_HARDWARE,
-    None,
+    HMODULE::default(),
     D3D11_CREATE_DEVICE_FLAG::default(),
     Some(&feature_levels),
     D3D11_SDK_VERSION,

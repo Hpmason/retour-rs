@@ -53,6 +53,7 @@ impl CapstoneDisasm {
           .as_ref()
           .map(|d| {
             d.groups()
+              .iter()
               .any(|g| g.0 as u32 == X86InsnGroup::X86_GRP_JUMP as u32)
           })
           .unwrap_or(false);
@@ -61,6 +62,7 @@ impl CapstoneDisasm {
           .as_ref()
           .map(|d| {
             d.groups()
+              .iter()
               .any(|g| g.0 as u32 == X86InsnGroup::X86_GRP_CALL as u32)
           })
           .unwrap_or(false);
@@ -69,6 +71,7 @@ impl CapstoneDisasm {
           .as_ref()
           .map(|d| {
             d.groups()
+              .iter()
               .any(|g| g.0 as u32 == X86InsnGroup::X86_GRP_RET as u32)
           })
           .unwrap_or(false);

@@ -164,7 +164,7 @@ impl Builder {
     let instruction_bytes = instruction.bytes().to_vec();
     let instruction_len = instruction.len();
 
-    let immediate_size = Self::estimate_immediate_size(instruction);
+    let immediate_size = instruction.imm_size();
 
     Ok(Box::new(pic::UnsafeThunk::new(
       move |offset| {
@@ -188,30 +188,6 @@ impl Builder {
       },
       instruction_len,
     )))
-  }
-
-  /// Estimate the immediate operand size from instruction bytes.
-  fn estimate_immediate_size(instruction: &OwnedInsn) -> usize {
-    let op_str = instruction.op_str();
-
-    if op_str.contains(", 0x") || op_str.contains(", -0x") {
-      if let Some(imm_start) = op_str.rfind(", ") {
-        let imm_str = &op_str[imm_start + 2..];
-        if imm_str.starts_with("0x") || imm_str.starts_with("-0x") {
-          let hex_str = imm_str.trim_start_matches('-').trim_start_matches("0x");
-          if hex_str.len() > 8 {
-            return 8;
-          } else if hex_str.len() > 4 {
-            return 4;
-          } else if hex_str.len() > 2 {
-            return 2;
-          } else {
-            return 1;
-          }
-        }
-      }
-    }
-    0
   }
 
   /// Processes relative branches (e.g `call`, `loop`, `jne`).

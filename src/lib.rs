@@ -1,13 +1,7 @@
 #![recursion_limit = "1024"]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![cfg_attr(
-  feature = "static-detour",
-  feature(unboxed_closures, tuple_trait)
-)]
-#![cfg_attr(
-  all(feature = "static-detour", test),
-  feature(naked_functions)
-)]
+#![cfg_attr(feature = "static-detour", feature(unboxed_closures, tuple_trait))]
+#![cfg_attr(all(feature = "static-detour", test), feature(naked_functions))]
 
 //! A cross-platform detour library written in Rust.
 //!
@@ -43,11 +37,11 @@
 //!   others types abstract upon. It has no type-safety and interacts with raw
 //!   pointers. It should be avoided unless any types are references, or not
 //!   known until runtime.
-//! 
+//!
 //! ## Supported Versions
-//! This crate, with default features, will support the MSRV in `Cargo.toml` 
-//! (currently 1.60.0). Certain features may require newer versions of the 
-//! compiler, which will be documented here and in the docs. Any features 
+//! This crate, with default features, will support the MSRV in `Cargo.toml`
+//! (currently 1.60.0). Certain features may require newer versions of the
+//! compiler, which will be documented here and in the docs. Any features
 //! that require the nightly compiler will always target the newest version.
 //!
 //! ## Features
@@ -102,7 +96,7 @@
 //!
 //! Beyond what is shown here, a trampoline is also generated so the original
 //! function can be called regardless whether the function is hooked or not.
-//! 
+//!
 //! For various injection methods, see the [README in the GitHub repo](https://github.com/Hpmason/retour-rs)
 
 // Re-exports
@@ -128,9 +122,22 @@ mod tests {
   use crate::Result;
   use matches::assert_matches;
 
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[repr(align(16384))]
+  struct DetourTestSectionAlign(#[allow(dead_code)] [u8; 16384]);
+
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[link_section = "__TEXT,__detour_test"]
+  #[used]
+  static DETOUR_TEST_SECTION_ALIGN: DetourTestSectionAlign = DetourTestSectionAlign([0; 16384]);
+
   #[test]
   fn detours_share_target() -> Result<()> {
     #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     extern "C" fn add(x: i32, y: i32) -> i32 {
       unsafe { std::ptr::read_volatile(&x as *const i32) + y }
     }
@@ -163,6 +170,10 @@ mod tests {
   #[test]
   fn same_detour_and_target() {
     #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     extern "C" fn add(x: i32, y: i32) -> i32 {
       unsafe { std::ptr::read_volatile(&x as *const i32) + y }
     }

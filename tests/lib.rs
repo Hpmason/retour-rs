@@ -8,6 +8,15 @@ extern "C" fn sub_detour(x: i32, y: i32) -> i32 {
   unsafe { std::ptr::read_volatile(&x as *const i32) - y }
 }
 
+// On macOS ARM64, target functions must be in a separate 16KB-aligned section
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[repr(align(16384))]
+struct DetourTestSectionAlign(#[allow(dead_code)] [u8; 16384]);
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[link_section = "__TEXT,__detour_test"]
+#[used]
+static DETOUR_TEST_SECTION_ALIGN: DetourTestSectionAlign = DetourTestSectionAlign([0; 16384]);
 
 mod raw {
   use super::*;
@@ -16,6 +25,10 @@ mod raw {
   #[test]
   fn test() -> Result<()> {
     #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     extern "C" fn add(x: i32, y: i32) -> i32 {
       unsafe { std::ptr::read_volatile(&x as *const i32) + y }
     }
@@ -57,6 +70,10 @@ mod generic {
   #[test]
   fn test() -> Result<()> {
     #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     extern "C" fn add(x: i32, y: i32) -> i32 {
       unsafe { std::ptr::read_volatile(&x as *const i32) + y }
     }
@@ -124,15 +141,58 @@ mod args_28 {
   use super::*;
   use retour::GenericDetour;
 
-
   type I = i32;
   type BigFn = fn(I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I);
 
-  fn a(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
-  fn b(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  fn a(
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+  ) {
+  }
+  fn b(
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+  ) {
+  }
   #[test]
   fn sanity_check() -> Result<()> {
-    let hook = unsafe { GenericDetour::<BigFn>::new(a, b) };
+    let _hook = unsafe { GenericDetour::<BigFn>::new(a, b) };
     Ok(())
   }
 }
@@ -141,26 +201,148 @@ mod args_42 {
   use super::*;
   use retour::GenericDetour;
 
-
   type I = i32;
-  type BiggerFn = fn(I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I);
+  type BiggerFn = fn(
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+  );
 
-  fn a(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I,
-    _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
-  fn b(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I,
-    _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  fn a(
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+  ) {
+  }
+  fn b(
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+  ) {
+  }
   #[test]
   fn sanity_check() -> Result<()> {
-    let hook = unsafe { GenericDetour::<BiggerFn>::new(a, b)? };
+    let _hook = unsafe { GenericDetour::<BiggerFn>::new(a, b)? };
     Ok(())
   }
 }
 
-#[cfg(target_arch="x86_64")]
+#[cfg(target_arch = "x86_64")]
 mod relative_ip {
-  use std::arch::global_asm;
   use super::*;
   use retour::GenericDetour;
+  use std::arch::global_asm;
 
   static VALUE: i32 = 3;
 
@@ -181,7 +363,7 @@ mod relative_ip {
     safe fn check_value() -> bool;
   }
 
-  extern fn new_check_value() -> bool {
+  extern "C" fn new_check_value() -> bool {
     true
   }
 
@@ -203,6 +385,84 @@ mod relative_ip {
       assert_eq!(check_value(), false);
     }
 
+    Ok(())
+  }
+}
+
+#[cfg(target_arch = "aarch64")]
+mod aarch64 {
+  use super::*;
+  use retour::{GenericDetour, RawDetour};
+
+  #[test]
+  fn test_raw_detour() -> Result<()> {
+    #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
+    extern "C" fn add(x: i32, y: i32) -> i32 {
+      unsafe { std::ptr::read_volatile(&x as *const i32) + y }
+    }
+
+    unsafe {
+      let hook = RawDetour::new(add as *const (), sub_detour as *const ())
+        .expect("target or source is not usable for detouring");
+
+      assert_eq!(add(10, 5), 15);
+      assert!(!hook.is_enabled());
+
+      hook.enable()?;
+      {
+        assert!(hook.is_enabled());
+        let trampoline: FnAdd = mem::transmute(hook.trampoline());
+        assert_eq!(trampoline(10, 5), 15);
+        assert_eq!(add(10, 5), 5);
+      }
+      hook.disable()?;
+
+      assert!(!hook.is_enabled());
+      assert_eq!(add(10, 5), 15);
+    }
+    Ok(())
+  }
+
+  #[test]
+  fn test_generic_detour() -> Result<()> {
+    #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
+    extern "C" fn multiply(x: i32, y: i32) -> i32 {
+      unsafe { std::ptr::read_volatile(&x as *const i32) * y }
+    }
+
+    #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
+    extern "C" fn divide(x: i32, y: i32) -> i32 {
+      unsafe { std::ptr::read_volatile(&x as *const i32) / y }
+    }
+
+    unsafe {
+      let hook = GenericDetour::<FnAdd>::new(multiply, divide)
+        .expect("target or source is not usable for detouring");
+
+      assert_eq!(multiply(10, 5), 50);
+      assert_eq!(hook.call(10, 5), 50);
+
+      hook.enable()?;
+      {
+        assert_eq!(multiply(10, 5), 2);
+        assert_eq!(hook.call(10, 5), 50);
+      }
+      hook.disable()?;
+
+      assert_eq!(multiply(10, 5), 50);
+    }
     Ok(())
   }
 }

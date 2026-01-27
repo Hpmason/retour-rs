@@ -19,7 +19,11 @@ pub fn allocate_pic(
   pool.allocate(origin, emitter.len()).map(|mut memory| {
     // Generate code for the obtained address
     let code = emitter.emit(memory.as_ptr() as *const _);
-    memory.copy_from_slice(code.as_slice());
+
+    alloc::jit::with_write_access(|| {
+      memory.copy_from_slice(code.as_slice());
+    });
+
     memory
   })
 }

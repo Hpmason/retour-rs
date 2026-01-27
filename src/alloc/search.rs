@@ -34,7 +34,7 @@ impl FreeRegionIter {
   /// Creates a new iterator for free regions.
   fn new(origin: *const (), range: Option<Range<usize>>, search: SearchDirection) -> Self {
     FreeRegionIter {
-      range: range.unwrap_or(0..usize::max_value()),
+      range: range.unwrap_or(0..usize::MAX),
       current: origin as usize,
       search,
     }

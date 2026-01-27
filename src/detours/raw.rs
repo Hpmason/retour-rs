@@ -5,7 +5,7 @@ use crate::error::Result;
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use retour::Result;
 /// use retour::RawDetour;
 /// use std::mem;
@@ -49,16 +49,29 @@ impl RawDetour {
   /// when the target function gets called. An invocation of the target
   /// function might for example get inlined in which case it is impossible to
   /// hook at runtime.
+  ///
+  /// # Safety
+  ///
+  /// Both `target` and `detour` must be valid function pointers with compatible
+  /// calling conventions.
   pub unsafe fn new(target: *const (), detour: *const ()) -> Result<Self> {
     Detour::new(target, detour).map(RawDetour)
   }
 
   /// Enables the detour.
+  ///
+  /// # Safety
+  ///
+  /// Must not be called while the target function is being executed.
   pub unsafe fn enable(&self) -> Result<()> {
     self.0.enable()
   }
 
   /// Disables the detour.
+  ///
+  /// # Safety
+  ///
+  /// Must not be called while the target function is being executed.
   pub unsafe fn disable(&self) -> Result<()> {
     self.0.disable()
   }

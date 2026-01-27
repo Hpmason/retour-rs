@@ -8,7 +8,7 @@ use retour::GenericDetour;
 use windows::{
   core::PCSTR,
   Win32::{
-    Foundation::{BOOL, HANDLE, HMODULE},
+    Foundation::{HANDLE, HMODULE},
     System::{
       LibraryLoader::{GetProcAddress, LoadLibraryA},
       SystemServices::{
@@ -32,15 +32,15 @@ extern "system" fn our_LoadLibraryA(lpFileName: PCSTR) -> HMODULE {
   unsafe { hook_LoadLibraryA.disable().unwrap() };
   let ret_val = hook_LoadLibraryA.call(lpFileName);
   println!(
-    "our_LoadLibraryA lpFileName = {:?} ret_val = {:#X}",
-    file_name, ret_val.0
+    "our_LoadLibraryA lpFileName = {:?} ret_val = {:?}",
+    file_name, ret_val
   );
   unsafe { hook_LoadLibraryA.enable().unwrap() };
   return ret_val;
 }
 
 #[no_mangle]
-unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: *mut c_void) -> BOOL {
+unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: *mut c_void) -> i32 {
   match reason {
     DLL_PROCESS_ATTACH => {
       println!("attaching");
@@ -55,5 +55,5 @@ unsafe extern "system" fn DllMain(_hinst: HANDLE, reason: u32, _reserved: *mut c
     DLL_THREAD_DETACH => {},
     _ => {},
   };
-  return BOOL::from(true);
+  1
 }

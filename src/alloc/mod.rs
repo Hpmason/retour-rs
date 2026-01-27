@@ -2,6 +2,7 @@ use crate::error::Result;
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex};
 
+pub mod jit;
 mod proximity;
 mod search;
 

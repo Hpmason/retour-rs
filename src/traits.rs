@@ -5,6 +5,11 @@
 
 /// Trait representing a function that can be used as a target or detour for
 /// detouring.
+///
+/// # Safety
+///
+/// Implementors must ensure that `to_ptr` returns a valid function pointer
+/// and that `from_ptr` only accepts valid function pointers.
 pub unsafe trait Function: Sized + Copy + Sync + 'static {
   /// The argument types as a tuple.
   type Arguments;
@@ -13,6 +18,10 @@ pub unsafe trait Function: Sized + Copy + Sync + 'static {
   type Output;
 
   /// Constructs a `Function` from an untyped pointer.
+  ///
+  /// # Safety
+  ///
+  /// The pointer must point to a valid function with the correct signature.
   unsafe fn from_ptr(ptr: *const ()) -> Self;
 
   /// Returns an untyped pointer for this function.
@@ -20,6 +29,10 @@ pub unsafe trait Function: Sized + Copy + Sync + 'static {
 }
 
 /// Trait indicating that `Self` can be detoured by the given function `D`.
+///
+/// # Safety
+///
+/// Both function types must have compatible calling conventions.
 pub unsafe trait HookableWith<D: Function>: Function {}
 
 unsafe impl<T: Function> HookableWith<T> for T {}

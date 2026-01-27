@@ -376,9 +376,22 @@ mod aarch64 {
   use super::*;
   use retour::{GenericDetour, RawDetour};
 
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[repr(align(16384))]
+  struct DetourTestSectionAlign(#[allow(dead_code)] [u8; 16384]);
+
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[link_section = "__TEXT,__detour_test"]
+  #[used]
+  static DETOUR_TEST_SECTION_ALIGN: DetourTestSectionAlign = DetourTestSectionAlign([0; 16384]);
+
   #[test]
   fn test_raw_detour() -> Result<()> {
     #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     extern "C" fn add(x: i32, y: i32) -> i32 {
       unsafe { std::ptr::read_volatile(&x as *const i32) + y }
     }
@@ -408,11 +421,19 @@ mod aarch64 {
   #[test]
   fn test_generic_detour() -> Result<()> {
     #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     extern "C" fn multiply(x: i32, y: i32) -> i32 {
       unsafe { std::ptr::read_volatile(&x as *const i32) * y }
     }
 
     #[inline(never)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     extern "C" fn divide(x: i32, y: i32) -> i32 {
       unsafe { std::ptr::read_volatile(&x as *const i32) / y }
     }

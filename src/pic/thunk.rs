@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use super::Thunkable;
 use generic_array::{ArrayLength, GenericArray};
 
@@ -23,6 +25,7 @@ impl<N: ArrayLength<u8>> Thunkable for FixedThunk<N> {
 }
 
 /// A closure that generates an unsafe thunk.
+#[allow(dead_code)]
 pub struct UnsafeThunk {
   callback: Box<dyn Fn(usize) -> Vec<u8>>,
   size: usize,
@@ -33,6 +36,7 @@ pub struct UnsafeThunk {
 /// emitted).
 impl UnsafeThunk {
   /// Constructs a new dynamic thunk with a closure.
+  #[allow(dead_code)]
   pub unsafe fn new<T: Fn(usize) -> Vec<u8> + 'static>(callback: T, size: usize) -> Self {
     UnsafeThunk {
       callback: Box::new(callback),

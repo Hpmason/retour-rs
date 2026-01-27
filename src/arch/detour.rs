@@ -91,22 +91,164 @@ impl Detour {
       return Ok(());
     }
 
-    // Runtime code is by default only read-execute
-    let _handle = {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    {
+      Self::macos_patch_bytes(&mut (*self.patcher.get()), enabled)?;
+    }
+
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    {
       let area = (*self.patcher.get()).area();
-      region::protect_with_handle(
+      let _handle = region::protect_with_handle(
         area.as_ptr(),
         area.len(),
         region::Protection::READ_WRITE_EXECUTE,
-      )
-    }?;
+      )?;
 
-    // Copy either the detour or the original bytes of the function
-    (*self.patcher.get()).toggle(enabled);
+      (*self.patcher.get()).toggle(enabled);
+    }
+
     self.enabled.store(enabled, Ordering::SeqCst);
     Ok(())
   }
+
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[cfg_attr(
+    all(target_os = "macos", target_arch = "aarch64"),
+    link_section = "__TEXT,__detour_patch"
+  )]
+  #[inline(never)]
+  unsafe fn macos_make_writable(addr: usize, len: usize) -> Result<()> {
+    const VM_PROT_READ: i32 = 0x01;
+    const VM_PROT_WRITE: i32 = 0x02;
+    const VM_PROT_COPY: i32 = 0x10;
+    const KERN_SUCCESS: i32 = 0;
+
+    extern "C" {
+      fn mach_task_self() -> u32;
+      fn mach_vm_protect(
+        target_task: u32,
+        address: u64,
+        size: u64,
+        set_maximum: i32,
+        new_protection: i32,
+      ) -> i32;
+    }
+
+    let result = mach_vm_protect(
+      mach_task_self(),
+      addr as u64,
+      len as u64,
+      0,
+      VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY,
+    );
+
+    if result != KERN_SUCCESS {
+      return Err(Error::RegionFailure(region::Error::SystemCall(
+        std::io::Error::new(
+          std::io::ErrorKind::PermissionDenied,
+          format!(
+            "mach_vm_protect (make writable) failed: kern_return_t {}",
+            result
+          ),
+        ),
+      )));
+    }
+
+    Ok(())
+  }
+
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[cfg_attr(
+    all(target_os = "macos", target_arch = "aarch64"),
+    link_section = "__TEXT,__detour_patch"
+  )]
+  #[inline(never)]
+  unsafe fn macos_make_executable(addr: usize, len: usize) -> Result<()> {
+    const VM_PROT_READ: i32 = 0x01;
+    const VM_PROT_EXECUTE: i32 = 0x04;
+    const KERN_SUCCESS: i32 = 0;
+
+    extern "C" {
+      fn mach_task_self() -> u32;
+      fn mach_vm_protect(
+        target_task: u32,
+        address: u64,
+        size: u64,
+        set_maximum: i32,
+        new_protection: i32,
+      ) -> i32;
+    }
+
+    let result = mach_vm_protect(
+      mach_task_self(),
+      addr as u64,
+      len as u64,
+      0,
+      VM_PROT_READ | VM_PROT_EXECUTE,
+    );
+
+    if result != KERN_SUCCESS {
+      return Err(Error::RegionFailure(region::Error::SystemCall(
+        std::io::Error::new(
+          std::io::ErrorKind::PermissionDenied,
+          format!(
+            "mach_vm_protect (make executable) failed: kern_return_t {}",
+            result
+          ),
+        ),
+      )));
+    }
+
+    Ok(())
+  }
+
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[cfg_attr(
+    all(target_os = "macos", target_arch = "aarch64"),
+    link_section = "__TEXT,__detour_patch"
+  )]
+  #[inline(never)]
+  unsafe fn macos_flush_icache(ptr: *const u8, len: usize) {
+    extern "C" {
+      fn sys_icache_invalidate(start: *const u8, size: usize);
+    }
+    sys_icache_invalidate(ptr, len);
+  }
+
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  #[cfg_attr(
+    all(target_os = "macos", target_arch = "aarch64"),
+    link_section = "__TEXT,__detour_patch"
+  )]
+  #[inline(never)]
+  unsafe fn macos_patch_bytes(patcher: &mut arch::Patcher, enabled: bool) -> Result<()> {
+    let area_ptr = patcher.area().as_ptr();
+    let area_len = patcher.area().len();
+    let page_size = region::page::size();
+    let aligned_addr = (area_ptr as usize) & !(page_size - 1);
+    let end_addr = (area_ptr as usize + area_len + page_size - 1) & !(page_size - 1);
+    let aligned_len = end_addr - aligned_addr;
+
+    Self::macos_make_writable(aligned_addr, aligned_len)?;
+    patcher.toggle(enabled);
+    Self::macos_make_executable(aligned_addr, aligned_len)?;
+    Self::macos_flush_icache(area_ptr, area_len);
+    Ok(())
+  }
 }
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[repr(align(16384))]
+struct DetourPatchSectionAlign(#[allow(dead_code)] [u8; 16384]);
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg_attr(
+  all(target_os = "macos", target_arch = "aarch64"),
+  link_section = "__TEXT,__detour_patch"
+)]
+#[used]
+static DETOUR_PATCH_SECTION_ALIGN: DetourPatchSectionAlign = DetourPatchSectionAlign([0; 16384]);
 
 impl Drop for Detour {
   /// Disables the detour, if enabled.

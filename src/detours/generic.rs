@@ -54,6 +54,10 @@ pub struct GenericDetour<T: Function> {
 impl<T: Function> GenericDetour<T> {
   /// Create a new hook given a target function and a compatible detour
   /// function.
+  ///
+  /// # Safety
+  ///
+  /// The target function must be valid and have a sufficient prolog for hooking.
   pub unsafe fn new<D>(target: T, detour: D) -> Result<Self>
   where
     T: HookableWith<D>,
@@ -66,11 +70,19 @@ impl<T: Function> GenericDetour<T> {
   }
 
   /// Enables the detour.
+  ///
+  /// # Safety
+  ///
+  /// Must not be called while the target function is being executed.
   pub unsafe fn enable(&self) -> Result<()> {
     self.detour.enable()
   }
 
   /// Disables the detour.
+  ///
+  /// # Safety
+  ///
+  /// Must not be called while the target function is being executed.
   pub unsafe fn disable(&self) -> Result<()> {
     self.detour.disable()
   }

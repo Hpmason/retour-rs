@@ -40,10 +40,12 @@ supported.
 
 This library provides CI for these targets:
 
-- Linux
+- Linux (x86/x86_64)
   * `i686-unknown-linux-gnu`
   * `x86_64-unknown-linux-gnu`
   * `x86_64-unknown-linux-musl`
+- Linux (ARM64)
+  * `aarch64-unknown-linux-gnu`
 - Windows
   * `i686-pc-windows-gnu`
   * `i686-pc-windows-msvc`
@@ -52,6 +54,7 @@ This library provides CI for these targets:
 - macOS
   * ~~`i686-apple-darwin`~~
   * `x86_64-apple-darwin`
+  * `aarch64-apple-darwin` (uses `MAP_JIT` + `pthread_jit_write_protect_np`, patching code/tests live in `__TEXT,__detour_patch`/`__TEXT,__detour_test`)
 
 ## Installation
 

@@ -102,6 +102,7 @@ impl ProximityAllocator {
   }
 
   /// Tries to allocate fixed memory at the specified address.
+  #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
   fn allocate_fixed_pool(address: *const (), size: usize) -> Option<SlicePool<u8>> {
     // Try to allocate memory at the specified address
     mmap::MemoryMap::new(
@@ -117,12 +118,47 @@ impl ProximityAllocator {
     .map(SliceableMemoryMap)
     .map(SlicePool::new)
   }
+
+  /// Tries to allocate fixed memory at the specified address.
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  fn allocate_fixed_pool(address: *const (), size: usize) -> Option<SlicePool<u8>> {
+    const MAP_JIT: libc::c_int = 0x0800;
+
+    let ptr = unsafe {
+      libc::mmap(
+        address as *mut libc::c_void,
+        size,
+        libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+        libc::MAP_PRIVATE | libc::MAP_ANON | MAP_JIT,
+        -1,
+        0,
+      )
+    };
+
+    if ptr == libc::MAP_FAILED || ptr.is_null() {
+      return None;
+    }
+
+    let allocated_addr = ptr as usize;
+    let requested_addr = address as usize;
+
+    if allocated_addr != requested_addr {
+      unsafe {
+        libc::munmap(ptr, size);
+      }
+      return None;
+    }
+
+    Some(SlicePool::new(JitMemoryMap { ptr, size }))
+  }
 }
 
 // TODO: Use memmap-rs instead
 /// A wrapper for making a memory map compatible with `SlicePool`.
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 struct SliceableMemoryMap(mmap::MemoryMap);
 
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 impl SliceableMemoryMap {
   pub fn as_slice(&self) -> &[u8] {
     unsafe { slice::from_raw_parts(self.0.data(), self.0.len()) }
@@ -133,17 +169,66 @@ impl SliceableMemoryMap {
   }
 }
 
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 impl AsRef<[u8]> for SliceableMemoryMap {
   fn as_ref(&self) -> &[u8] {
     self.as_slice()
   }
 }
 
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 impl AsMut<[u8]> for SliceableMemoryMap {
   fn as_mut(&mut self) -> &mut [u8] {
     self.as_mut_slice()
   }
 }
 
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 unsafe impl Send for SliceableMemoryMap {}
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 unsafe impl Sync for SliceableMemoryMap {}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+struct JitMemoryMap {
+  ptr: *mut libc::c_void,
+  size: usize,
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+impl JitMemoryMap {
+  pub fn as_slice(&self) -> &[u8] {
+    unsafe { slice::from_raw_parts(self.ptr as *const u8, self.size) }
+  }
+
+  pub fn as_mut_slice(&mut self) -> &mut [u8] {
+    unsafe { slice::from_raw_parts_mut(self.ptr as *mut u8, self.size) }
+  }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+impl AsRef<[u8]> for JitMemoryMap {
+  fn as_ref(&self) -> &[u8] {
+    self.as_slice()
+  }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+impl AsMut<[u8]> for JitMemoryMap {
+  fn as_mut(&mut self) -> &mut [u8] {
+    self.as_mut_slice()
+  }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+impl Drop for JitMemoryMap {
+  fn drop(&mut self) {
+    unsafe {
+      libc::munmap(self.ptr, self.size);
+    }
+  }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+unsafe impl Send for JitMemoryMap {}
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+unsafe impl Sync for JitMemoryMap {}

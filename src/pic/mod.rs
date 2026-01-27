@@ -1,5 +1,5 @@
 pub use self::emitter::CodeEmitter;
-pub use self::thunk::{FixedThunk, UnsafeThunk};
+pub use self::thunk::FixedThunk;
 
 mod emitter;
 mod thunk;

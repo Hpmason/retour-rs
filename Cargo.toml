@@ -36,6 +36,9 @@ static-detour = ["nightly"]
 28-args = []
 42-args = ["28-args"]
 
+x86 = []
+arm64 = []
+
 [[example]]
 name = "messageboxw_detour"
 required-features = ["static-detour"]
@@ -55,11 +58,8 @@ crate-type = ["cdylib"]
 name = "kernel32_detour"
 crate-type = ["cdylib"]
 
-[target."cfg(any(target_arch = \"x86\", target_arch = \"x86_64\"))".dependencies.iced-x86]
-version = "1.20"
-default-features = false
-# https://github.com/icedland/iced/blob/master/src/rust/iced-x86/README.md#crate-feature-flags
-features = ["std", "decoder", "fast_fmt"]
+[target."cfg(any(target_arch = \"x86\", target_arch = \"x86_64\", target_arch = \"aarch64\"))".dependencies.capstone]
+version = "0.12"
 
 [target."cfg(windows)".dev-dependencies.windows]
 version = "0.48"

@@ -134,10 +134,13 @@ impl Builder {
         let opc = (insn_word >> 30) & 0x3;
         let v = (insn_word >> 26) & 0x1;
 
-        if opc == 0b01 || opc == 0b11 || v == 1 {
+        // Handle scalar LDR/LDRSW literal (v == 0), skip PRFM (opc == 11) and SIMD (v == 1)
+        // opc encoding: 00 = LDR Wt (32-bit), 01 = LDR Xt (64-bit),
+        //               10 = LDRSW Xt (32-bit signed to 64-bit), 11 = PRFM (prefetch only)
+        if v == 0 && opc != 0b11 {
           if let Some(target_addr) = Self::calculate_pc_rel_target(instruction) {
             let rd = (insn_word & 0x1F) as u8;
-            return Ok(self.emit_ldr_from_absolute(rd, target_addr, opc == 0b11));
+            return Ok(self.emit_ldr_from_absolute(rd, target_addr, opc));
           }
         }
 
@@ -221,12 +224,7 @@ impl Builder {
     Box::new(bytes)
   }
 
-  fn emit_ldr_from_absolute(
-    &self,
-    rd: u8,
-    address: u64,
-    is_64bit: bool,
-  ) -> Box<dyn pic::Thunkable> {
+  fn emit_ldr_from_absolute(&self, rd: u8, address: u64, opc: u32) -> Box<dyn pic::Thunkable> {
     let mut bytes = Vec::with_capacity(24);
 
     let imm0 = (address & 0xFFFF) as u32;
@@ -252,10 +250,15 @@ impl Builder {
       bytes.extend_from_slice(&movk3.to_le_bytes());
     }
 
-    let ldr = if is_64bit {
-      0xF9400200 | (rd as u32)
-    } else {
-      0xB9400200 | (rd as u32)
+    // Generate the appropriate load instruction based on opc:
+    // opc == 0b00: LDR Wt, [x16] (32-bit load)
+    // opc == 0b01: LDR Xt, [x16] (64-bit load)
+    // opc == 0b10: LDRSW Xt, [x16] (32-bit signed load to 64-bit)
+    let ldr = match opc {
+      0b00 => 0xB9400200 | (rd as u32), // LDR Wt, [x16]
+      0b01 => 0xF9400200 | (rd as u32), // LDR Xt, [x16]
+      0b10 => 0xB9800200 | (rd as u32), // LDRSW Xt, [x16]
+      _ => 0xF9400200 | (rd as u32),    // Default to 64-bit (shouldn't happen)
     };
     bytes.extend_from_slice(&ldr.to_le_bytes());
 

@@ -175,8 +175,9 @@ impl CapstoneDisasm {
 pub struct OwnedInsn {
   address: u64,
   bytes: Vec<u8>,
+  #[cfg_attr(any(target_arch = "x86", target_arch = "x86_64"), allow(dead_code))]
   mnemonic: String,
-  #[cfg_attr(target_arch = "aarch64", allow(dead_code))]
+  #[allow(dead_code)]
   op_str: String,
   #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
   is_branch: bool,
@@ -208,11 +209,12 @@ impl OwnedInsn {
     &self.bytes
   }
 
+  #[cfg_attr(any(target_arch = "x86", target_arch = "x86_64"), allow(dead_code))]
   pub fn mnemonic(&self) -> &str {
     &self.mnemonic
   }
 
-  #[cfg_attr(target_arch = "aarch64", allow(dead_code))]
+  #[allow(dead_code)]
   pub fn op_str(&self) -> &str {
     &self.op_str
   }

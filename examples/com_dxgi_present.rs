@@ -7,8 +7,8 @@ use std::mem::size_of;
 use std::os::raw::c_void;
 use std::ptr::null;
 
-use windows::core::{Interface, HRESULT, HSTRING, PCWSTR};
-use windows::Win32::Foundation::{GetLastError, BOOL, HMODULE, HWND, LPARAM, LRESULT, WPARAM};
+use windows::core::{w, Interface, HRESULT, PCWSTR};
+use windows::Win32::Foundation::{GetLastError, HINSTANCE, HMODULE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Direct3D::*;
 use windows::Win32::Graphics::Direct3D11::*;
 use windows::Win32::Graphics::Dxgi::Common::*;
@@ -22,7 +22,7 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 use retour::static_detour;
 
 static_detour! {
-    static PresentHook:  unsafe extern "system" fn(*mut c_void, u32, u32) -> HRESULT;
+    static PresentHook: unsafe extern "system" fn(*mut c_void, u32, u32) -> HRESULT;
 }
 
 #[allow(non_snake_case)]
@@ -33,19 +33,15 @@ fn present(This: *mut c_void, SyncInterval: u32, Flags: u32) -> HRESULT {
 
 #[no_mangle]
 #[allow(non_snake_case)]
-pub extern "system" fn DllMain(module: HMODULE, call_reason: u32, _reserved: *mut c_void) -> BOOL {
-  unsafe {
-    DisableThreadLibraryCalls(module);
-  }
+pub extern "system" fn DllMain(module: HMODULE, call_reason: u32, _reserved: *mut c_void) -> i32 {
+  let _ = unsafe { DisableThreadLibraryCalls(module) };
 
   if call_reason == DLL_PROCESS_ATTACH {
-    unsafe {
-      AllocConsole();
-    }
+    let _ = unsafe { AllocConsole() };
 
     std::thread::spawn(|| unsafe {
       match crate::main() {
-        Ok(()) => 0 as u32,
+        Ok(()) => 0u32,
         Err(e) => {
           println!("Error occurred when injecting: {}", e);
           1
@@ -53,7 +49,7 @@ pub extern "system" fn DllMain(module: HMODULE, call_reason: u32, _reserved: *mu
       }
     });
   }
-  true.into()
+  1
 }
 
 unsafe extern "system" fn window_proc(
@@ -62,14 +58,17 @@ unsafe extern "system" fn window_proc(
   w_param: WPARAM,
   l_param: LPARAM,
 ) -> LRESULT {
-  // workaround for https://github.com/microsoft/windows-rs/issues/2556
   DefWindowProcW(hwnd, msg, w_param, l_param)
 }
 
 unsafe fn main() -> Result<(), Box<dyn Error>> {
   let vtable = get_d3d11_vtables().as_ref().unwrap();
   println!("Found Present Pointer at {:p}", vtable.Present as *const ());
-  PresentHook.initialize(vtable.Present, present)?;
+
+  // Cast the vtable function to match our hook signature (u32 flags instead of DXGI_PRESENT)
+  let present_fn: unsafe extern "system" fn(*mut c_void, u32, u32) -> HRESULT =
+    std::mem::transmute(vtable.Present);
+  PresentHook.initialize(present_fn, present)?;
 
   PresentHook.enable()?;
 
@@ -78,19 +77,19 @@ unsafe fn main() -> Result<(), Box<dyn Error>> {
 }
 
 unsafe fn get_render_window() -> (WNDCLASSEXW, HWND) {
-  let window_class_name = HSTRING::from("DxHookWindowClass");
+  let hinstance: HINSTANCE = GetModuleHandleW(None).unwrap().into();
   let window_class = WNDCLASSEXW {
     cbSize: size_of::<WNDCLASSEXW>() as u32,
     style: CS_HREDRAW | CS_VREDRAW,
     lpfnWndProc: Some(window_proc),
     cbClsExtra: 0,
     cbWndExtra: 0,
-    hInstance: GetModuleHandleW(None).unwrap(),
+    hInstance: hinstance,
     hIcon: HICON::default(),
     hCursor: HCURSOR::default(),
     hbrBackground: HBRUSH::default(),
     lpszMenuName: PCWSTR(null()),
-    lpszClassName: PCWSTR(window_class_name.as_wide().as_ptr()),
+    lpszClassName: w!("DxHookWindowClass"),
     hIconSm: HICON::default(),
   };
 
@@ -99,17 +98,18 @@ unsafe fn get_render_window() -> (WNDCLASSEXW, HWND) {
   let hwnd = CreateWindowExW(
     WINDOW_EX_STYLE::default(),
     window_class.lpszClassName,
-    PCWSTR(HSTRING::from("DxHookWindowClass").as_wide().as_ptr()),
+    w!("DxHookWindowClass"),
     WS_OVERLAPPEDWINDOW,
     0,
     0,
     100,
     100,
-    HWND::default(),
-    HMENU::default(),
-    window_class.hInstance,
     None,
-  );
+    None,
+    Some(window_class.hInstance),
+    None,
+  )
+  .unwrap();
 
   (window_class, hwnd)
 }
@@ -145,11 +145,11 @@ unsafe fn get_d3d11_vtables() -> *const IDXGISwapChain_Vtbl {
   let mut out_swapchain = None;
   let mut out_device = None;
   let mut out_context: Option<ID3D11DeviceContext> = None;
-  //
+
   D3D11CreateDeviceAndSwapChain(
     None,
     D3D_DRIVER_TYPE_HARDWARE,
-    HMODULE::default(),
+    None,
     D3D11_CREATE_DEVICE_FLAG::default(),
     Some(&feature_levels),
     D3D11_SDK_VERSION,
@@ -165,19 +165,13 @@ unsafe fn get_d3d11_vtables() -> *const IDXGISwapChain_Vtbl {
   let swapchain = out_swapchain.unwrap();
   let swapchain_vtbl: &IDXGISwapChain_Vtbl = swapchain.vtable();
 
-  if !CloseWindow(hwnd).as_bool() {
-    println!("Failed to close window. Error: {:?}", GetLastError());
+  if let Err(e) = CloseWindow(hwnd) {
+    println!("Failed to close window. Error: {:?}", e);
   }
-  if !DestroyWindow(hwnd).as_bool() {
-    println!("Failed to destroy window. Error: {:?}", GetLastError());
+  if let Err(e) = DestroyWindow(hwnd) {
+    println!("Failed to destroy window. Error: {:?}", e);
   }
-  // Needs fresh pointer to class name (else error 1411) + call DestroyWindow first (else error 1412)
-  if !UnregisterClassW(
-    PCWSTR(HSTRING::from("DxHookWindowClass").as_wide().as_ptr()),
-    window_class.hInstance,
-  )
-  .as_bool()
-  {
+  if let Err(_) = UnregisterClassW(w!("DxHookWindowClass"), Some(window_class.hInstance)) {
     println!(
       "Failed to unregister window class. Error: {:?}",
       GetLastError()

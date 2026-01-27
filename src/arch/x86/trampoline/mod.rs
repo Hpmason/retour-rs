@@ -2,7 +2,7 @@ use crate::arch::disasm::{CapstoneDisasm, OwnedInsn};
 use crate::arch::x86::thunk;
 use crate::error::{Error, Result};
 use crate::pic;
-use std::{mem, slice};
+use std::slice;
 
 /// A trampoline generator (x86/x64).
 pub struct Trampoline {
@@ -211,9 +211,6 @@ impl Builder {
         _ => break,
       }
     }
-
-    // Now we're at the opcode
-    let opcode_start = offset;
 
     // Check for 2-byte opcode (0x0F prefix)
     if offset < bytes.len() && bytes[offset] == 0x0F {

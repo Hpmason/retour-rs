@@ -46,7 +46,10 @@ mod tests {
   #[test]
   fn detour_simple() -> Result<()> {
     #[inline(never)]
-    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     unsafe extern "C" fn ret5() -> i32 {
       let result = 5i32;
       std::hint::black_box(result);
@@ -63,7 +66,10 @@ mod tests {
   fn detour_conditional_branch() -> Result<()> {
     // Tests a function with a conditional branch (b.eq) in the prolog
     #[unsafe(naked)]
-    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     unsafe extern "C" fn branch_ret5() -> i32 {
       naked_asm!(
         "
@@ -86,7 +92,10 @@ mod tests {
   fn detour_unconditional_branch() -> Result<()> {
     // Tests a function with an unconditional branch (b) in the prolog
     #[unsafe(naked)]
-    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     unsafe extern "C" fn unconditional_branch_ret7() -> i32 {
       naked_asm!(
         "
@@ -100,14 +109,22 @@ mod tests {
       );
     }
 
-    unsafe { detour_test(mem::transmute(unconditional_branch_ret7 as *const () as usize), 7) }
+    unsafe {
+      detour_test(
+        mem::transmute(unconditional_branch_ret7 as *const () as usize),
+        7,
+      )
+    }
   }
 
   #[test]
   fn detour_adr_relative() -> Result<()> {
     // Tests a function using ADR instruction for PC-relative addressing
     #[unsafe(naked)]
-    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     unsafe extern "C" fn adr_relative_ret42() -> i32 {
       naked_asm!(
         "
@@ -126,12 +143,44 @@ mod tests {
   }
 
   #[test]
+  fn detour_ldr_literal_32bit() -> Result<()> {
+    // Tests a function using 32-bit LDR literal (PC-relative load)
+    #[unsafe(naked)]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
+    unsafe extern "C" fn ldr_literal_32_ret123() -> i32 {
+      naked_asm!(
+        "
+            ldr w0, 1f
+            nop
+            nop
+            nop
+            ret
+            .p2align 2
+          1:
+            .word 123",
+      );
+    }
+
+    unsafe {
+      detour_test(
+        mem::transmute(ldr_literal_32_ret123 as *const () as usize),
+        123,
+      )
+    }
+  }
+
+  #[test]
   fn detour_ldr_literal_64bit() -> Result<()> {
     // Tests a function using 64-bit LDR literal (PC-relative load)
-    // Note: 32-bit LDR literal (ldr wN) is not currently supported
     #[unsafe(naked)]
-    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
-    unsafe extern "C" fn ldr_literal_ret123() -> i32 {
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
+    unsafe extern "C" fn ldr_literal_64_ret456() -> i32 {
       naked_asm!(
         "
             ldr x0, 1f
@@ -141,18 +190,26 @@ mod tests {
             ret
             .p2align 3
           1:
-            .quad 123",
+            .quad 456",
       );
     }
 
-    unsafe { detour_test(mem::transmute(ldr_literal_ret123 as *const () as usize), 123) }
+    unsafe {
+      detour_test(
+        mem::transmute(ldr_literal_64_ret456 as *const () as usize),
+        456,
+      )
+    }
   }
 
   #[test]
   fn detour_padding_after() -> Result<()> {
     // Tests a function with NOP padding after the return
     #[unsafe(naked)]
-    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     unsafe extern "C" fn padding_after_ret3() -> i32 {
       naked_asm!(
         "
@@ -172,7 +229,10 @@ mod tests {
   fn detour_hotpatch() -> Result<()> {
     // Tests a function with NOP padding before the actual code (hotpatch style)
     #[unsafe(naked)]
-    #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
+    #[cfg_attr(
+      all(target_os = "macos", target_arch = "aarch64"),
+      link_section = "__TEXT,__detour_test"
+    )]
     unsafe extern "C" fn hotpatch_ret0() -> i32 {
       naked_asm!(
         "
@@ -193,7 +253,10 @@ mod tests {
   }
 
   /// Default detour target.
-  #[cfg_attr(all(target_os = "macos", target_arch = "aarch64"), link_section = "__TEXT,__detour_test")]
+  #[cfg_attr(
+    all(target_os = "macos", target_arch = "aarch64"),
+    link_section = "__TEXT,__detour_test"
+  )]
   unsafe extern "C" fn ret10() -> i32 {
     10
   }

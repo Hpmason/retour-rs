@@ -12,6 +12,10 @@ version = "0.4.0-alpha.4"
 edition = "2018"
 rust-version = "1.60.0"
 
+[workspace]
+resolver = "3"
+members = [ "retour-macros" ]
+
 # [badges]
 # azure-devops = { project = "darfink/detour-rs", pipeline = "darfink.detour-rs" }
 
@@ -23,6 +27,7 @@ libc = "0.2.145"
 mmap = { package = "mmap-fixed-fixed", version = "0.2.0" }
 region = "3.0.0"
 slice-pool = {package = "slice-pool2", version = "0.4.3" }
+retour-macros = { path = "retour-macros", optional = true }
 
 [dev-dependencies]
 matches = "0.1.10"
@@ -32,7 +37,7 @@ ctor = "0.2.2"
 default = []
 nightly = []
 thiscall-abi = ["nightly"]
-static-detour = ["nightly"]
+static-detour = ["nightly", "dep:retour-macros"]
 28-args = []
 42-args = ["28-args"]
 

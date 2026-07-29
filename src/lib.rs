@@ -140,9 +140,6 @@ pub use error::{Error, Result};
 pub use retour_macros::static_detour;
 pub use traits::{Function, HookableWith};
 
-#[macro_use]
-mod macros;
-
 // Modules
 mod alloc;
 mod arch;

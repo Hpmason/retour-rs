@@ -30,16 +30,16 @@ fn impl_hookable() {
     let names = &names[..i];
 
     let impl_generic = quote! { impl<Ret: 'static, #(#args: 'static),*> };
-    let call_original = quote! { original(#(#names),*) };
+
+    // Features are built in source to avoid re-running build.rs on feature change
+    let feats = match args.len() {
+      ..=14 => quote! {},
+      15..=28 => quote! { #[cfg(feature = "28-args")] },
+      29..=42 => quote! { #[cfg(feature = "42-args")] },
+      _ => unreachable!(),
+    };
 
     for abi in abis.iter().copied() {
-      // Features are built in source to avoid re-running build.rs on feature change
-      let feats = match args.len() {
-        ..=14 => quote! {},
-        15..=28 => quote! { #[cfg(feature = "28-args")] },
-        29..=42 => quote! { #[cfg(feature = "42-args")] },
-        _ => unreachable!(),
-      };
       let feats = match abi {
         "cdecl" | "fastcall" | "stdcall" => quote! {
           #feats
@@ -53,55 +53,95 @@ fn impl_hookable() {
           #feats
           #[cfg(any(docsrs, all(target_arch = "x86", feature = "thiscall-abi")))]
         },
-        _ => feats,
+        _ => feats.clone(),
       };
 
-      for safety in [quote! {}, quote! { unsafe }] {
-        let fn_type = quote! { #safety extern #abi fn(#(#args),*) -> Ret };
-        let call_sig = quote! {
-            #[doc(hidden)]
-            pub #safety fn call(&self, #(#names : #args),*) -> Ret
+      for safe in [false, true] {
+        let safety = if safe {
+          quote! {}
+        } else {
+          quote! { unsafe }
         };
 
-        // Final result of this iteration
-        let res = quote! {
-          #[cfg(feature = "static-detour")]
-          #feats
-          #impl_generic StaticDetour<#fn_type> {
-            #call_sig {
-              unsafe {
-                let original: #fn_type = ::std::mem::transmute(self.trampoline().expect("calling detour trampoline"));
-                #call_original
+        for variadic in [false, true] {
+          if variadic && (abi != "C" || safe) {
+            continue;
+          }
+
+          // Optionally add variadic specific components
+          let (vlist_call_sig, vlist_abi, vlist_arg, vlist_name, vlist_syntax, feats) = if variadic
+          {
+            let vlist_syntax = quote! { ... };
+            let vlist_name = quote! { variadic };
+            (
+              quote! { #vlist_name: #vlist_syntax },
+              quote! { extern "C" },
+              quote! { std::ffi::VaList<'a>, },
+              vlist_name,
+              vlist_syntax,
+              quote! {
+                  #feats
+                  #[cfg(feature = "c-variadic")]
+              },
+            )
+          } else {
+            (
+              quote! {},
+              quote! {},
+              quote! {},
+              quote! {},
+              quote! {},
+              feats.clone(),
+            )
+          };
+
+          let fn_type = quote! { #safety extern #abi fn(#(#args,)* #vlist_syntax) -> Ret };
+          let call_sig = quote! {
+              #[doc(hidden)]
+              pub #safety #vlist_abi fn call(&self, #(#names : #args,)* #vlist_call_sig) -> Ret
+          };
+          let call_original = quote! { original(#(#names,)* #vlist_name) };
+
+          // Final result of this iteration
+          let res = quote! {
+            #[cfg(feature = "static-detour")]
+            #feats
+            #impl_generic StaticDetour<#fn_type> {
+              #call_sig {
+                unsafe {
+                  let original: #fn_type = ::std::mem::transmute(self.trampoline().expect("calling detour trampoline"));
+                  #call_original
+                }
               }
             }
-          }
 
-          #feats
-          #impl_generic GenericDetour<#fn_type> {
-            #call_sig {
-              unsafe {
-                let original: #fn_type = ::std::mem::transmute(self.trampoline());
-                #call_original
+            #feats
+            #impl_generic GenericDetour<#fn_type> {
+              #call_sig {
+                unsafe {
+                  let original: #fn_type = ::std::mem::transmute(self.trampoline());
+                  #call_original
+                }
               }
             }
-          }
 
-          #feats
-          unsafe #impl_generic Function for #fn_type {
-            type Arguments = (#(#args,)*);
-            type Output = Ret;
+            #feats
+            unsafe #impl_generic Function for #fn_type {
+              type Arguments<'a> = (#(#args,)* #vlist_arg);
+              type Output = Ret;
 
-            unsafe fn from_ptr(ptr: *const ()) -> Self {
-              ::std::mem::transmute(ptr)
+              unsafe fn from_ptr(ptr: *const ()) -> Self {
+                ::std::mem::transmute(ptr)
+              }
+
+              fn to_ptr(&self) -> *const () {
+                *self as *const ()
+              }
             }
+          };
 
-            fn to_ptr(&self) -> *const () {
-              *self as *const ()
-            }
-          }
-        };
-
-        tokens.push(res);
+          tokens.push(res);
+        }
       }
     }
   }

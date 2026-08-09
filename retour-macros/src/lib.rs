@@ -23,15 +23,23 @@ pub fn static_detour(input: TokenStream) -> TokenStream {
       .collect::<Vec<_>>();
     let args = sig.inputs.iter().map(|v| &v.ty);
 
+    // Optionally add variadic specific components
+    let (vlist_arg, vlist_name) = if sig.variadic.is_some() {
+      let name = quote! { variadic };
+      (quote! { #name: ... }, name)
+    } else {
+      (quote! {}, quote! {})
+    };
+
     let generated = quote! {
       #[allow(non_upper_case_globals)]
       #(#attrs)*
       #vis static #name: retour::StaticDetour<#sig> = {
         #[inline(never)]
         #[allow(unused_unsafe)]
-        #unsafety #abi fn __ffi_detour(#(#names: #args),*) #output {
+        #unsafety #abi fn __ffi_detour(#(#names: #args,)* #vlist_arg) #output {
           #[allow(unused_unsafe)]
-          (#name.__detour())(#(#names),*)
+          (#name.__detour())(#(#names,)* #vlist_name)
         }
 
         retour::StaticDetour::__new(__ffi_detour)

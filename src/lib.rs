@@ -2,6 +2,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(feature = "static-detour", feature(unboxed_closures, tuple_trait))]
 #![cfg_attr(all(feature = "static-detour", test), feature(naked_functions))]
+#![cfg_attr(feature = "c-variadic", feature(c_variadic))]
 
 //! A cross-platform detour library written in Rust.
 //!

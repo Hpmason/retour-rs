@@ -7,7 +7,7 @@
 /// detouring.
 pub unsafe trait Function: Sized + Copy + Sync + 'static {
   /// The argument types as a tuple.
-  type Arguments;
+  type Arguments<'a>;
 
   /// The return type.
   type Output;

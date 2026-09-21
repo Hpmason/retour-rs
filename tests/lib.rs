@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "nightly", feature(c_variadic))]
+
 use retour::Result;
 use std::mem;
 
@@ -119,17 +121,104 @@ mod statik {
   }
 }
 
+#[cfg(feature = "c-variadic")]
+#[cfg(feature = "nightly")]
+mod variadic {
+  use retour::GenericDetour;
+
+  #[inline(never)]
+  unsafe extern "C" fn add(argc: usize, mut args: ...) -> i32 {
+    dbg!(argc);
+    let mut res = 0;
+    for _ in 0..argc {
+      let a = unsafe { args.next_arg::<i32>() };
+      dbg!(a);
+      res += a;
+    }
+    res
+  }
+
+  #[inline(never)]
+  unsafe extern "C" fn add_detour(argc: usize, mut args: ...) -> i32 {
+    let mut res = 0;
+    for _ in 0..argc {
+      res -= unsafe { args.next_arg::<i32>() };
+    }
+    res
+  }
+
+  #[test]
+  fn variadic() {
+    unsafe {
+      let hook = GenericDetour::<unsafe extern "C" fn(usize, ...) -> i32>::new(add, add_detour)
+        .expect("target or source is not usable for detouring");
+
+      assert_eq!(add(5, 1, 2, 3, 4, 5), 15);
+      assert_eq!(hook.call(5, 1, 2, 3, 4, 5), 15);
+      hook.enable().unwrap();
+      assert_eq!(hook.call(5, 1, 2, 3, 4, 5), 15);
+      assert_eq!(add(5, 1, 2, 3, 4, 5), -13);
+      hook.disable().unwrap();
+      assert_eq!(add(5, 1, 2, 3, 4, 5), 15);
+      assert_eq!(hook.call(5, 1, 2, 3, 4, 5), 15);
+    }
+  }
+}
+
 #[cfg(feature = "28-args")]
 mod args_28 {
   use super::*;
   use retour::GenericDetour;
 
-
   type I = i32;
   type BigFn = fn(I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I);
 
-  fn a(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
-  fn b(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  fn a(
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+  ) {
+  }
+  fn b(
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+  ) {
+  }
   #[test]
   fn sanity_check() -> Result<()> {
     let hook = unsafe { GenericDetour::<BigFn>::new(a, b) };
@@ -141,14 +230,136 @@ mod args_42 {
   use super::*;
   use retour::GenericDetour;
 
-
   type I = i32;
-  type BiggerFn = fn(I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I);
+  type BiggerFn = fn(
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+    I,
+  );
 
-  fn a(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I,
-    _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
-  fn b(_: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I,
-    _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I, _: I) {}
+  fn a(
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+  ) {
+  }
+  fn b(
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+    _: I,
+  ) {
+  }
   #[test]
   fn sanity_check() -> Result<()> {
     let hook = unsafe { GenericDetour::<BiggerFn>::new(a, b)? };
@@ -156,11 +367,11 @@ mod args_42 {
   }
 }
 
-#[cfg(target_arch="x86_64")]
+#[cfg(target_arch = "x86_64")]
 mod relative_ip {
-  use std::arch::global_asm;
   use super::*;
   use retour::GenericDetour;
+  use std::arch::global_asm;
 
   static VALUE: i32 = 3;
 
@@ -181,7 +392,7 @@ mod relative_ip {
     safe fn check_value() -> bool;
   }
 
-  extern fn new_check_value() -> bool {
+  extern "C" fn new_check_value() -> bool {
     true
   }
 

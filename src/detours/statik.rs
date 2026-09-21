@@ -63,7 +63,7 @@ use std::{mem, ptr};
 /// }
 /// ```
 pub struct StaticDetour<T: Function> {
-  closure: AtomicPtr<Box<dyn Fn<T::Arguments, Output = T::Output>>>,
+  closure: AtomicPtr<Box<dyn for<'a> Fn<T::Arguments<'a>, Output = T::Output>>>,
   detour: AtomicPtr<GenericDetour<T>>,
   ffi: T,
 }
@@ -104,8 +104,8 @@ impl<T: Function> StaticDetour<T> {
   /// ```
   pub unsafe fn initialize<D>(&self, target: T, closure: D) -> Result<&Self>
   where
-    D: Fn<T::Arguments, Output = T::Output> + Send + 'static,
-    <T as Function>::Arguments: Tuple,
+    D: for<'a> Fn<T::Arguments<'a>, Output = T::Output> + Send + 'static,
+    for<'a> <T as Function>::Arguments<'a>: Tuple,
   {
     let mut detour = Box::new(GenericDetour::new(target, self.ffi)?);
     if self
@@ -156,8 +156,8 @@ impl<T: Function> StaticDetour<T> {
   /// Changes the detour, regardless of whether the hook is enabled or not.
   pub fn set_detour<C>(&self, closure: C)
   where
-    C: Fn<T::Arguments, Output = T::Output> + Send + 'static,
-    <T as Function>::Arguments: Tuple,
+    C: for<'a> Fn<T::Arguments<'a>, Output = T::Output> + Send + 'static,
+    for<'a> <T as Function>::Arguments<'a>: Tuple,
   {
     let previous = self
       .closure
@@ -178,9 +178,9 @@ impl<T: Function> StaticDetour<T> {
 
   /// Returns a transient reference to the active detour.
   #[doc(hidden)]
-  pub fn __detour(&self) -> &dyn Fn<T::Arguments, Output = T::Output>
+  pub fn __detour(&self) -> &dyn for<'a> Fn<T::Arguments<'a>, Output = T::Output>
   where
-    <T as Function>::Arguments: Tuple,
+    for<'a> <T as Function>::Arguments<'a>: Tuple,
   {
     // TODO: This is not 100% thread-safe in case the thread is stopped
     unsafe { self.closure.load(Ordering::SeqCst).as_ref() }
@@ -198,7 +198,9 @@ impl<T: Function> Drop for StaticDetour<T> {
 
     let previous = self.detour.swap(ptr::null_mut(), Ordering::Relaxed);
     if !previous.is_null() {
-      unsafe { let _ = Box::from_raw(previous); };
+      unsafe {
+        let _ = Box::from_raw(previous);
+      };
     }
   }
 }

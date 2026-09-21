@@ -1,5 +1,6 @@
 #![cfg(all(not(windows), feature = "static-detour"))]
 
+/*
 use retour::static_detour;
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -27,3 +28,7 @@ fn main() {
     Opentour.enable().unwrap();
   }
 }
+*/
+
+#[ctor::ctor]
+fn main() {}

@@ -1,13 +1,7 @@
 #![recursion_limit = "1024"]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![cfg_attr(
-  feature = "static-detour",
-  feature(unboxed_closures, tuple_trait)
-)]
-#![cfg_attr(
-  all(feature = "static-detour", test),
-  feature(naked_functions)
-)]
+#![cfg_attr(feature = "static-detour", feature(unboxed_closures, tuple_trait))]
+#![cfg_attr(all(feature = "static-detour", test), feature(naked_functions))]
 
 //! A cross-platform detour library written in Rust.
 //!
@@ -43,20 +37,22 @@
 //!   others types abstract upon. It has no type-safety and interacts with raw
 //!   pointers. It should be avoided unless any types are references, or not
 //!   known until runtime.
-//! 
+//!
 //! ## Supported Versions
-//! This crate, with default features, will support the MSRV in `Cargo.toml` 
-//! (currently 1.60.0). Certain features may require newer versions of the 
-//! compiler, which will be documented here and in the docs. Any features 
+//! This crate, with default features, will support the MSRV in `Cargo.toml`
+//! (currently 1.60.0). Certain features may require newer versions of the
+//! compiler, which will be documented here and in the docs. Any features
 //! that require the nightly compiler will always target the newest version.
 //!
 //! ## Features
 //!
-//! - **static-detour**: Required for static detours, due to usage
-//!   of *unboxed_closures* and *tuple_trait*. The feature also enables a more
+//! - **static-detour**: Required for static detours, due to usage of
+//!   *unboxed_closures* and *tuple_trait*. The feature also enables a more
 //!   extensive test suite. *Requires nightly compiler*
-//! - **thiscall-abi**: Required for hooking functions that use the "thiscall" ABI. *Requires 1.73.0 or greater*
-//! - **28-args**: Allows for detouring functions up to 28 arguments (default is 14)
+//! - **thiscall-abi**: Required for hooking functions that use the "thiscall"
+//!   ABI. *Requires 1.73.0 or greater*
+//! - **28-args**: Allows for detouring functions up to 28 arguments (default is
+//!   14)
 //! - **42-args**: Allows for detouring functions up to 42 arguments
 //!
 //! ## Platforms
@@ -102,16 +98,47 @@
 //!
 //! Beyond what is shown here, a trampoline is also generated so the original
 //! function can be called regardless whether the function is hooked or not.
-//! 
+//!
 //! For various injection methods, see the [README in the GitHub repo](https://github.com/Hpmason/retour-rs)
 
 // Re-exports
 pub use detours::*;
 pub use error::{Error, Result};
+#[cfg(feature = "static-detour")]
+/// A macro for defining static, type-safe detours.
+///
+/// This macro defines one or more [StaticDetour](./struct.StaticDetour.html)s.
+///
+/// # Syntax
+///
+/// ```ignore
+/// static_detour! {
+///   [pub] static NAME_1: [unsafe] [extern "cc"] fn([argument]...) [-> ret];
+///   [pub] static NAME_2: [unsafe] [extern "cc"] fn([argument]...) [-> ret];
+///   ...
+///   [pub] static NAME_N: [unsafe] [extern "cc"] fn([argument]...) [-> ret];
+/// }
+/// ```
+///
+/// # Example
+///
+/// ```rust
+/// # use retour_macros::static_detour;
+/// # extern crate retour;
+/// static_detour! {
+///   // The simplest detour
+///   static Foo: fn();
+///
+///   // An unsafe public detour with a different calling convention
+///   pub static PubFoo: unsafe extern "C" fn(i32) -> i32;
+///
+///   // A specific visibility modifier
+///   pub(crate) static PubSelf: unsafe extern "C" fn();
+/// }
+/// # fn main() { }
+/// ```
+pub use retour_macros::static_detour;
 pub use traits::{Function, HookableWith};
-
-#[macro_use]
-mod macros;
 
 // Modules
 mod alloc;
